@@ -571,6 +571,17 @@ function slugify(name) {
   const root = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 90);
   return `${root || "restaurant"}-${nanoid(6).toLowerCase()}`;
 }
+function classifyDatabaseConnectionError(error) {
+  const code = typeof error === "object" && error !== null && "code" in error ? String(error.code).toLowerCase() : "";
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  const detail = `${code} ${message}`;
+  if (/unknown (column|table)|doesn't exist|no database selected/.test(detail)) return "schema";
+  if (/access denied|authentication|er_access_denied|password/.test(detail)) return "credentials";
+  if (/ssl|tls|certificate|handshake/.test(detail)) return "tls";
+  if (/invalid.*url|malformed|uri/.test(detail)) return "format";
+  if (/enotfound|econnrefused|etimedout|getaddrinfo|network/.test(detail)) return "network";
+  return "connection";
+}
 var appRouter = router({
   system: systemRouter,
   auth: router({
@@ -582,9 +593,7 @@ var appRouter = router({
         const [rows] = await db.execute(sql`SELECT DATABASE() AS databaseName`);
         return { status: "connected", databaseName: rows[0]?.databaseName ?? null };
       } catch (error) {
-        const message = error instanceof Error ? error.message.toLowerCase() : "";
-        const reason = /unknown (column|table)|doesn't exist|no database selected/.test(message) ? "schema" : "connection";
-        return { status: "error", reason };
+        return { status: "error", reason: classifyDatabaseConnectionError(error) };
       }
     }),
     signIn: publicProcedure.input(credentialsInput).mutation(async ({ ctx, input }) => {

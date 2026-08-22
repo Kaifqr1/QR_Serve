@@ -38,6 +38,18 @@ function isDuplicateKeyError(error: unknown) {
   return typeof error === "object" && error !== null && "code" in error && (error.code === "ER_DUP_ENTRY" || error.code === 1062);
 }
 
+function classifyDatabaseConnectionError(error: unknown) {
+  const code = typeof error === "object" && error !== null && "code" in error ? String(error.code).toLowerCase() : "";
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  const detail = `${code} ${message}`;
+  if (/unknown (column|table)|doesn't exist|no database selected/.test(detail)) return "schema" as const;
+  if (/access denied|authentication|er_access_denied|password/.test(detail)) return "credentials" as const;
+  if (/ssl|tls|certificate|handshake/.test(detail)) return "tls" as const;
+  if (/invalid.*url|malformed|uri/.test(detail)) return "format" as const;
+  if (/enotfound|econnrefused|etimedout|getaddrinfo|network/.test(detail)) return "network" as const;
+  return "connection" as const;
+}
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -49,9 +61,7 @@ export const appRouter = router({
         const [rows] = await db.execute(sql`SELECT DATABASE() AS databaseName`) as unknown as [Array<{ databaseName: string | null }>];
         return { status: "connected" as const, databaseName: rows[0]?.databaseName ?? null };
       } catch (error) {
-        const message = error instanceof Error ? error.message.toLowerCase() : "";
-        const reason = /unknown (column|table)|doesn't exist|no database selected/.test(message) ? "schema" : "connection";
-        return { status: "error" as const, reason };
+        return { status: "error" as const, reason: classifyDatabaseConnectionError(error) };
       }
     }),
     signIn: publicProcedure.input(credentialsInput).mutation(async ({ ctx, input }) => {

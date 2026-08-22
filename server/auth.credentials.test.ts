@@ -63,6 +63,14 @@ describe("administrator-only authentication router", () => {
     await expect(caller.auth.storageStatus()).resolves.toEqual({ status: "connected", databaseName: "qrserve" });
   });
 
+  it("classifies credential failures without exposing the underlying error", async () => {
+    const execute = vi.fn().mockRejectedValue(Object.assign(new Error("Access denied for user"), { code: "ER_ACCESS_DENIED_ERROR" }));
+    mocks.getDb.mockResolvedValue({ execute });
+    const { caller } = unauthenticatedCaller();
+
+    await expect(caller.auth.storageStatus()).resolves.toEqual({ status: "error", reason: "credentials" });
+  });
+
   it("rejects passwords shorter than twelve characters before database access", async () => {
     const { caller } = unauthenticatedCaller();
 

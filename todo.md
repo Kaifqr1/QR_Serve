@@ -57,4 +57,21 @@
 - [ ] Verify the live Vercel administrator sign-in and dashboard session now that the external TiDB record exists.
 - [ ] Confirm Vercel's production DATABASE_URL targets the populated TiDB qrserve schema without exposing the connection string.
 - [ ] Validate the Vercel database connection through a secret-safe flow that does not require manual connection-string editing.
+- [ ] Obtain the official TiDB application connection value and replace the broken Vercel production database connection without disclosing the value.
+- [ ] Copy TiDB’s TLS-enabled connection string and replace Vercel’s production DATABASE_URL without exposing credentials.
+- [ ] Copy the confirmed TiDB qrserve TLS connection string and paste it into the Vercel production DATABASE_URL field.
+- [ ] Paste the copied TiDB TLS connection value into Vercel production DATABASE_URL and save it without exposing the value.
+- [ ] Paste the copied TiDB TLS value into the open Vercel DATABASE_URL form and save it for Production and Preview.
+- [ ] Redeploy Vercel Production after saving the official TiDB TLS connection and verify live database connectivity.
+- [ ] Run final live database, administrator sign-in, and dashboard refresh verification after the production redeploy.
+- [ ] Set or reset the TiDB database password privately and use it to complete the official TiDB connection string for Vercel.
+- [ ] Refresh the TiDB connection template after the password reset, then save the completed TLS connection value to Vercel.
+- [ ] Replace the old Vercel production DATABASE_URL with the refreshed password-complete TiDB TLS connection value.
+- [ ] Confirm safe live TiDB connectivity and administrator sign-in after the password-complete Vercel database redeploy.
+- [ ] Replace the literal `<PASSWORD>` placeholder in Vercel's TiDB connection template with the private TiDB database password before redeploying.
+- [ ] Complete Vercel's TiDB connection template by privately replacing `<PASSWORD>` with the alphanumeric database password.
+- [ ] Paste the TiDB connection template into Vercel's empty value field so the password placeholder can be replaced privately.
+- [ ] Save the already password-complete TiDB value in Vercel and redeploy Production for final live validation.
+- [ ] Configure TiDB public-endpoint network access for Vercel so secure database-backed administrator sign-in can work without hard-coded credentials.
+- [ ] Classify the remaining secure Vercel-to-TiDB connection error now that TiDB public network access is confirmed open.
 - [ ] Verify the live Vercel administrator sign-in and dashboard refresh after the database-setting redeployment.
