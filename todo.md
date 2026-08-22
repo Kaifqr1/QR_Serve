@@ -27,3 +27,5 @@
 - [x] Add Vercel deployment configuration for the React/Express application without changing managed production hosting.
 - [x] Document Vercel production environment variables, OAuth callback requirements, database connectivity, storage behavior, and custom-domain metadata steps.
 - [x] Run a deployment-oriented build check, produce a concise readiness checklist, and save the Vercel preparation checkpoint.
+- [x] Replace the current landing-page hero image with an impactful QRServe-branded editorial visual.
+- [x] Verify the new hero visual at desktop and mobile widths, then save the updated checkpoint.
