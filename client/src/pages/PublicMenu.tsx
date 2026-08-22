@@ -1,13 +1,14 @@
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { MapPin, Search, UtensilsCrossed } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRoute } from "wouter";
 
 const fallbackImages = ["/manus-storage/qrserve-menu-paneer_b1f548a1.jpg", "/manus-storage/qrserve-menu-tandoori_782fd2d0.jpg", "/manus-storage/qrserve-menu-biryani_8df97ed3.jpg"];
 
 export default function PublicMenu() {
-  const [, params] = useRoute("/menu/:slug"); const [search, setSearch] = useState(""); const [activeCategory, setActiveCategory] = useState("all"); const menu = trpc.public.menu.useQuery({ slug: params?.slug ?? "" }, { enabled: Boolean(params?.slug), retry: false });
+  const [, params] = useRoute("/menu/:slug"); const [search, setSearch] = useState(""); const [activeCategory, setActiveCategory] = useState("all"); const scanRecorded = useRef(false); const menu = trpc.public.menu.useQuery({ slug: params?.slug ?? "" }, { enabled: Boolean(params?.slug), retry: false }); const trackScan = trpc.public.trackScan.useMutation();
+  useEffect(() => { if (params?.slug && new URLSearchParams(window.location.search).get("source") === "qr" && !scanRecorded.current) { scanRecorded.current = true; trackScan.mutate({ slug: params.slug }); } }, [params?.slug, trackScan]);
   const categories = useMemo(() => (menu.data?.categories ?? []).filter(category => activeCategory === "all" || category.id === Number(activeCategory)).map(category => ({ ...category, items: category.items.filter(item => `${item.name} ${item.description ?? ""}`.toLowerCase().includes(search.toLowerCase())) })).filter(category => category.items.length > 0), [menu.data, activeCategory, search]);
   if (menu.isLoading) return <div className="min-h-screen bg-[#f6f2eb] px-5 py-12"><div className="mx-auto max-w-5xl animate-pulse"><div className="h-10 w-48 rounded bg-[#e6dfd6]" /><div className="mt-8 h-12 rounded bg-[#e6dfd6]" /><div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }).map((_, index) => <div key={index} className="h-64 rounded-3xl bg-[#e6dfd6]" />)}</div></div></div>;
   if (menu.error || !menu.data) return <div className="grid min-h-screen place-items-center bg-[#f6f2eb] p-6 text-center"><div><UtensilsCrossed className="mx-auto h-8 w-8 text-[#a48e75]" /><h1 className="mt-5 font-display text-4xl text-[#201d19]">Menu not found.</h1><p className="mt-3 text-sm leading-6 text-[#70675d]">This menu may have moved or is no longer being served.</p></div></div>;

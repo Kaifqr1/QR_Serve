@@ -9,7 +9,7 @@ import { useLocation, useRoute } from "wouter";
 
 export default function QRStudio() {
   const [, params] = useRoute("/app/qr/:id"); const restaurantId = Number(params?.id); const restaurant = trpc.restaurant.get.useQuery({ id: restaurantId }, { enabled: Number.isFinite(restaurantId) }); const [, setLocation] = useLocation(); const [image, setImage] = useState(""); const [copied, setCopied] = useState(false);
-  const publicUrl = restaurant.data ? `${window.location.origin}/menu/${restaurant.data.slug}` : "";
+  const publicUrl = restaurant.data ? `${window.location.origin}/menu/${restaurant.data.slug}?source=qr` : "";
   useEffect(() => { if (publicUrl) QRCode.toDataURL(publicUrl, { width: 640, margin: 1, color: { dark: "#201d19", light: "#f8f3ea" } }).then(setImage).catch(() => toast.error("QR image could not be prepared.")); }, [publicUrl]);
   const copy = async () => { try { await navigator.clipboard.writeText(publicUrl); setCopied(true); toast.success("Menu link copied."); setTimeout(() => setCopied(false), 1800); } catch { toast.error("Copy is unavailable here. Select the menu address below."); } };
   const download = () => { const anchor = document.createElement("a"); anchor.href = image; anchor.download = `${restaurant.data?.slug ?? "qrserve-menu"}-qr.png`; anchor.click(); };

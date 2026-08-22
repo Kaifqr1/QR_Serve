@@ -61,4 +61,40 @@ describe("QRServe protected procedures", () => {
       message: expect.stringContaining("category"),
     });
   });
+
+  it("rejects moving a menu item to a category outside the owned restaurant", async () => {
+    const limit = vi.fn()
+      .mockResolvedValueOnce([{ id: 2, restaurantId: 1, categoryId: 3, version: 1 }])
+      .mockResolvedValueOnce([]);
+    mocks.getDb.mockResolvedValue({
+      select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit })) })) })),
+    });
+    mocks.getOwnedRestaurant.mockResolvedValue({ id: 1, ownerId: 1, name: "Demo", slug: "demo", location: "Mumbai" });
+
+    await expect(caller().menu.update({ id: 2, categoryId: 88 })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: expect.stringContaining("category"),
+    });
+  });
+
+  it("keeps owner and internal restaurant fields out of the public menu contract", async () => {
+    const restaurant = [{ id: 7, ownerId: 1, name: "Demo", slug: "demo", location: "Mumbai", description: "Modern Indian", logoUrl: null, plan: "PRO", timezone: "Asia/Kolkata", createdAt: new Date(), updatedAt: new Date() }];
+    const categories = [{ id: 4, restaurantId: 7, name: "Mains", description: null, sortOrder: 0, createdAt: new Date(), updatedAt: new Date() }];
+    const items = [{ id: 9, restaurantId: 7, categoryId: 4, name: "Paneer", description: "Smoky", price: "320.00", imageUrl: null, sortOrder: 0, isAvailable: true, version: 3, createdAt: new Date(), updatedAt: new Date() }];
+    const results = [restaurant, categories, items];
+    const values = vi.fn().mockResolvedValue(undefined);
+    mocks.getDb.mockResolvedValue({
+      select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn(() => Promise.resolve(results.shift())), orderBy: vi.fn(() => Promise.resolve(results.shift())) })) })) })),
+      insert: vi.fn(() => ({ values })),
+    });
+
+    const result = await caller().public.menu({ slug: "demo" });
+
+    expect(result.restaurant).toEqual({ name: "Demo", slug: "demo", location: "Mumbai", description: "Modern Indian", logoUrl: null });
+    expect(result.restaurant).not.toHaveProperty("ownerId");
+    expect(result.restaurant).not.toHaveProperty("plan");
+    expect(result.categories[0]?.items[0]).toEqual({ id: 9, categoryId: 4, name: "Paneer", description: "Smoky", price: 320, imageUrl: null });
+    expect(result.categories[0]?.items[0]).not.toHaveProperty("version");
+    expect(values).toHaveBeenCalledWith(expect.objectContaining({ restaurantId: 7, eventType: "MENU_VIEW" }));
+  });
 });

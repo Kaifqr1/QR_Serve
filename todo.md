@@ -12,3 +12,9 @@
 - [x] Add responsive behavior, keyboard-visible focus styles, and clear loading/error states.
 - [x] Add focused Vitest coverage for core server rules and run typecheck, test, and production build.
 - [x] Verify desktop and mobile visual rendering, resolve issues, and save the completed project checkpoint.
+- [x] Audit the current QRServe implementation against every supplied MVP requirement and record prioritized gaps.
+- [x] Add server-side route hardening for request size limits, defensive HTTP headers, CORS policy, and authentication rate limiting.
+- [x] Enforce ownership and relationship checks on every mutable resource path, including category moves and analytics events.
+- [x] Add missing functional safeguards for restaurant editing, category removal, public-menu analytics, and QR scan event handling.
+- [x] Add security-focused tests for authorization boundaries, input validation, rate limiting, and public-route privacy.
+- [x] Run dependency, type, test, build, and browser verification; resolve discovered defects and save the hardened checkpoint.

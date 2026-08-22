@@ -43,10 +43,16 @@ export const menuItemInput = z.object({
 
 export const menuItemUpdateInput = menuItemInput.partial().extend({
   id: z.number().int().positive(),
+  categoryId: z.number().int().positive().optional(),
+  name: z.string().trim().min(2, "Menu item name must be at least 2 characters.").max(80).optional(),
+  description: z.string().trim().max(280).optional(),
+  price: z.coerce.number().min(0, "Price cannot be negative.").max(999999).optional(),
+  imageUrl: z.string().url().optional().or(z.literal("")).optional(),
+  isAvailable: z.boolean().optional(),
 });
 
 export const imageUploadInput = z.object({
-  filename: z.string().trim().min(1).max(100).regex(/^[a-zA-Z0-9._ -]+$/, "Use a simple image filename."),
+  filename: z.string().trim().min(1).max(100).regex(/^[a-zA-Z0-9._ -]+$/, "Use a simple image filename.").refine(value => !value.startsWith(".") && !value.includes(".."), "Use a safe image filename."),
   contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
   dataUrl: z.string().min(50).max(7_000_000),
 });

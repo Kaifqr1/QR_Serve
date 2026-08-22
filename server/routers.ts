@@ -10,6 +10,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { storagePut } from "./storage";
 import { COOKIE_NAME } from "@shared/const";
+import { isImageSignatureValid } from "./security";
 
 const idInput = z.object({ id: z.number().int().positive() });
 const restaurantIdInput = z.object({ restaurantId: z.number().int().positive() });
@@ -92,6 +93,10 @@ export const appRouter = router({
     update: protectedProcedure.input(menuItemUpdateInput).mutation(async ({ ctx, input }) => {
       const db = await database(); const current = await db.select().from(menuItems).where(eq(menuItems.id, input.id)).limit(1);
       if (!current[0]) throw new TRPCError({ code: "NOT_FOUND", message: "Menu item not found." }); await owned(ctx.user.id, current[0].restaurantId);
+      if (input.categoryId !== undefined) {
+        const category = await db.select().from(menuCategories).where(and(eq(menuCategories.id, input.categoryId), eq(menuCategories.restaurantId, current[0].restaurantId))).limit(1);
+        if (!category[0]) throw new TRPCError({ code: "BAD_REQUEST", message: "Choose a category belonging to this restaurant." });
+      }
       await db.update(menuItems).set({ ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}), ...(input.name !== undefined ? { name: input.name } : {}), ...(input.description !== undefined ? { description: input.description || null } : {}), ...(input.price !== undefined ? { price: input.price.toFixed(2) } : {}), ...(input.imageUrl !== undefined ? { imageUrl: input.imageUrl || null } : {}), ...(input.isAvailable !== undefined ? { isAvailable: input.isAvailable } : {}), version: current[0].version + 1 }).where(eq(menuItems.id, input.id));
       return { success: true } as const;
     }),
@@ -100,6 +105,7 @@ export const appRouter = router({
       const match = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(input.dataUrl);
       if (!match || match[1] !== input.contentType) throw new TRPCError({ code: "BAD_REQUEST", message: "Please choose a valid JPG, PNG, or WebP image." });
       const bytes = Buffer.from(match[2], "base64"); if (bytes.byteLength > 5_000_000) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "Image files must be 5 MB or smaller." });
+      if (!isImageSignatureValid(bytes, input.contentType)) throw new TRPCError({ code: "BAD_REQUEST", message: "The image content does not match its declared file type." });
       return storagePut(`qrserve/${ctx.user.id}/menu-images/${input.filename.replace(/\s+/g, "-").toLowerCase()}`, bytes, input.contentType);
     }),
   }),
@@ -111,18 +117,47 @@ export const appRouter = router({
       const items = await db.select().from(menuItems).where(and(eq(menuItems.restaurantId, restaurant[0].id), eq(menuItems.isAvailable, true))).orderBy(asc(menuItems.sortOrder));
       const userAgent = Array.isArray(ctx.req.headers["user-agent"]) ? ctx.req.headers["user-agent"][0] : ctx.req.headers["user-agent"];
       await db.insert(analyticsEvents).values({ restaurantId: restaurant[0].id, eventType: "MENU_VIEW", userAgent: userAgent?.slice(0, 500) ?? null });
-      return { restaurant: restaurant[0], categories: categories.map(category => ({ ...category, items: items.filter(item => item.categoryId === category.id).map(item => ({ ...item, price: Number(item.price) })) })) };
+      return {
+        restaurant: {
+          name: restaurant[0].name,
+          slug: restaurant[0].slug,
+          location: restaurant[0].location,
+          description: restaurant[0].description,
+          logoUrl: restaurant[0].logoUrl,
+        },
+        categories: categories.map(category => ({
+          id: category.id,
+          name: category.name,
+          description: category.description,
+          items: items.filter(item => item.categoryId === category.id).map(item => ({
+            id: item.id,
+            categoryId: item.categoryId,
+            name: item.name,
+            description: item.description,
+            price: Number(item.price),
+            imageUrl: item.imageUrl,
+          })),
+        })),
+      };
+    }),
+    trackScan: publicProcedure.input(z.object({ slug: z.string().trim().min(1).max(120) })).mutation(async ({ input }) => {
+      const db = await database();
+      const restaurant = await db.select({ id: restaurants.id }).from(restaurants).where(eq(restaurants.slug, input.slug)).limit(1);
+      if (!restaurant[0]) throw new TRPCError({ code: "NOT_FOUND", message: "This menu is no longer available." });
+      await db.insert(analyticsEvents).values({ restaurantId: restaurant[0].id, eventType: "QR_SCAN" });
+      return { success: true } as const;
     }),
   }),
   analytics: router({
     summary: protectedProcedure.input(restaurantIdInput).query(async ({ ctx, input }) => {
       const db = await database(); await owned(ctx.user.id, input.restaurantId);
-      const [views, items, categories] = await Promise.all([
+      const [views, scans, items, categories] = await Promise.all([
         db.select({ total: count() }).from(analyticsEvents).where(and(eq(analyticsEvents.restaurantId, input.restaurantId), eq(analyticsEvents.eventType, "MENU_VIEW"))),
+        db.select({ total: count() }).from(analyticsEvents).where(and(eq(analyticsEvents.restaurantId, input.restaurantId), eq(analyticsEvents.eventType, "QR_SCAN"))),
         db.select({ total: count() }).from(menuItems).where(eq(menuItems.restaurantId, input.restaurantId)),
         db.select({ total: count() }).from(menuCategories).where(eq(menuCategories.restaurantId, input.restaurantId)),
       ]);
-      return { views: Number(views[0]?.total ?? 0), scans: 0, items: Number(items[0]?.total ?? 0), categories: Number(categories[0]?.total ?? 0) };
+      return { views: Number(views[0]?.total ?? 0), scans: Number(scans[0]?.total ?? 0), items: Number(items[0]?.total ?? 0), categories: Number(categories[0]?.total ?? 0) };
     }),
   }),
 });
