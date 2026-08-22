@@ -642,6 +642,15 @@ async function database2() {
   if (!db) throw new TRPCError3({ code: "PRECONDITION_FAILED", message: "QRServe data storage is not available yet. Please try again shortly." });
   return db;
 }
+function safeImageStorageFailure(error) {
+  const record = typeof error === "object" && error !== null ? error : {};
+  const message = typeof record.message === "string" ? record.message.replace(/cloudinary:\/\/[^@\s]+@/gi, "cloudinary://[redacted]@").replace(/(api[_-]?secret|api[_-]?key|token)=([^\s&]+)/gi, "$1=[redacted]").slice(0, 400) : "Unknown storage error";
+  return {
+    name: typeof record.name === "string" ? record.name.slice(0, 80) : "StorageError",
+    httpCode: typeof record.http_code === "number" ? record.http_code : void 0,
+    message
+  };
+}
 async function owned(ownerId, restaurantId) {
   const restaurant = await getOwnedRestaurant(ownerId, restaurantId);
   if (!restaurant) throw new TRPCError3({ code: "NOT_FOUND", message: "Restaurant not found or access is not permitted." });
@@ -802,6 +811,7 @@ var appRouter = router({
         if (error instanceof StorageConfigurationError) {
           throw new TRPCError3({ code: "PRECONDITION_FAILED", message: "Dish image uploads are not connected yet. Please finish the secure image-storage setup and try again." });
         }
+        console.error("QRServe dish image upload failed", safeImageStorageFailure(error));
         throw new TRPCError3({ code: "INTERNAL_SERVER_ERROR", message: "We could not upload that image. Please try again." });
       }
     })
