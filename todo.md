@@ -43,3 +43,4 @@
 - [ ] Provide and validate the TiDB authentication schema migration, then verify Vercel-compatible authentication flows.
 - [x] Fix the sign-in experience for legacy OAuth-era accounts that have no email address or password hash, then verify the migration guidance and credential flow.
 - [x] Fix local recovery when no production-length signing secret is configured and when the chosen email already belongs to an existing local account.
+- [x] Replace generic duplicate-registration feedback with an explicit recovery action for existing email/password accounts.

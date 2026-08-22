@@ -18,6 +18,7 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const me = trpc.auth.me.useQuery();
+  const recoveryStatus = trpc.auth.recoveryStatus.useQuery(undefined, { retry: false, refetchOnWindowFocus: false });
 
   useEffect(() => {
     if (me.data) setLocation("/app");
@@ -35,7 +36,18 @@ export default function SignIn() {
   });
   const register = trpc.auth.register.useMutation({
     onSuccess: user => complete(user, "Your QRServe workspace is ready."),
-    onError: error => toast.error(error.message),
+    onError: error => {
+      if (error.data?.code === "CONFLICT") {
+        const canRecover = Boolean(recoveryStatus.data?.eligible);
+        setMode(canRecover ? "recover" : "signIn");
+        setPassword("");
+        toast.error(canRecover
+          ? "This email already has a QRServe account. Recovery is ready below—enter its current password to safely merge your previous workspace."
+          : "This email already has a QRServe account. Sign in with the password you just created instead of creating it again.");
+        return;
+      }
+      toast.error(error.message);
+    },
   });
   const claimLegacy = trpc.auth.claimLegacy.useMutation({
     onSuccess: user => complete(user, "Your previous QRServe workspace is ready."),
@@ -87,7 +99,7 @@ export default function SignIn() {
               <div><label className="label text-[#d8ccbb]" htmlFor="auth-password">Password</label><Input id="auth-password" type="password" autoComplete={mode === "signIn" ? "current-password" : "new-password"} value={password} onChange={event => setPassword(event.target.value)} required minLength={12} maxLength={128} className="field h-10 border-[#554c43] bg-white/5 text-white placeholder:text-[#897e70]" placeholder={mode === "signIn" ? "Your password" : "At least 12 characters"} /><p className="mt-2 text-xs text-[#938779]">Use at least 12 characters.</p></div>
               <Button type="submit" disabled={pending} className="mt-2 h-12 w-full rounded-full bg-[#ed5739] text-white hover:bg-[#d94830]">{pending ? "Please wait…" : mode === "signIn" ? "Sign in" : mode === "recover" ? "Recover workspace" : "Create account"}<ArrowRight className="ml-2 h-4 w-4" /></Button>
             </form>
-            {mode === "signIn" ? <div className="mt-7 space-y-3 text-center text-sm text-[#b7ada1]"><p>New to QRServe?<button onClick={() => chooseMode("register")} className="ml-2 font-semibold text-[#f77a61] hover:text-[#ff9b86]">Create an account</button></p><button onClick={() => chooseMode("recover")} className="font-semibold text-[#f77a61] hover:text-[#ff9b86]">Recover a previous QRServe workspace</button></div> : <div className="mt-7 space-y-3 text-center text-sm text-[#b7ada1]"><p>{mode === "recover" ? "Need a fresh account?" : "Already have an account?"}<button onClick={() => chooseMode(mode === "recover" ? "register" : "signIn")} className="ml-2 font-semibold text-[#f77a61] hover:text-[#ff9b86]">{mode === "recover" ? "Create an account" : "Sign in"}</button></p>{mode === "recover" && <button onClick={() => chooseMode("signIn")} className="font-semibold text-[#f77a61] hover:text-[#ff9b86]">Back to sign in</button>}</div>}
+            {mode === "signIn" ? <div className="mt-7 space-y-3 text-center text-sm text-[#b7ada1]">{recoveryStatus.data?.eligible && <div className="rounded-2xl border border-[#ed5739]/35 bg-[#ed5739]/10 p-3 text-left"><p className="font-medium text-[#ffd0c7]">Previous QRServe workspace detected in this browser.</p><button onClick={() => chooseMode("recover")} className="mt-2 font-semibold text-[#f77a61] hover:text-[#ff9b86]">Recover it now</button></div>}<p>New to QRServe?<button onClick={() => chooseMode("register")} className="ml-2 font-semibold text-[#f77a61] hover:text-[#ff9b86]">Create an account</button></p><button onClick={() => chooseMode("recover")} className="font-semibold text-[#f77a61] hover:text-[#ff9b86]">Recover a previous QRServe workspace</button></div> : <div className="mt-7 space-y-3 text-center text-sm text-[#b7ada1]"><p>{mode === "recover" ? "Need a fresh account?" : "Already have an account?"}<button onClick={() => chooseMode(mode === "recover" ? "register" : "signIn")} className="ml-2 font-semibold text-[#f77a61] hover:text-[#ff9b86]">{mode === "recover" ? "Create an account" : "Sign in"}</button></p>{mode === "recover" && <button onClick={() => chooseMode("signIn")} className="font-semibold text-[#f77a61] hover:text-[#ff9b86]">Back to sign in</button>}</div>}
           </div>
         </div>
       </main>

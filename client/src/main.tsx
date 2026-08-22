@@ -20,14 +20,14 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (window.location.pathname !== "/sign-in") window.location.assign("/sign-in");
 };
 
-const isExpectedCredentialFailure = (error: unknown) =>
-  error instanceof TRPCClientError && error.data?.code === "UNAUTHORIZED";
+const isExpectedAccountFailure = (error: unknown) =>
+  error instanceof TRPCClientError && (error.data?.code === "UNAUTHORIZED" || error.data?.code === "CONFLICT");
 
 queryClient.getQueryCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.query.state.error;
     redirectToLoginIfUnauthorized(error);
-    if (!isExpectedCredentialFailure(error)) console.error("[API Query Error]", error);
+    if (!isExpectedAccountFailure(error)) console.error("[API Query Error]", error);
   }
 });
 
@@ -35,7 +35,7 @@ queryClient.getMutationCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.mutation.state.error;
     redirectToLoginIfUnauthorized(error);
-    if (!isExpectedCredentialFailure(error)) console.error("[API Mutation Error]", error);
+    if (!isExpectedAccountFailure(error)) console.error("[API Mutation Error]", error);
   }
 });
 

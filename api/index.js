@@ -580,6 +580,7 @@ var appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user ? publicUser(opts.ctx.user) : null),
+    recoveryStatus: publicProcedure.query((opts) => ({ eligible: Boolean(!opts.ctx.user && opts.ctx.legacyOpenId) })),
     register: publicProcedure.input(registrationInput).mutation(async ({ ctx, input }) => {
       const db = await database2();
       const email = normaliseEmail(input.email);

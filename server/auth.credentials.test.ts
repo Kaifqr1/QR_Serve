@@ -54,6 +54,11 @@ describe("credential authentication router", () => {
     expect(mocks.getDb).not.toHaveBeenCalled();
   });
 
+  it("only marks recovery eligible when the request holds a verified legacy identity", async () => {
+    await expect(unauthenticatedCaller().caller.auth.recoveryStatus()).resolves.toEqual({ eligible: false });
+    await expect(unauthenticatedCaller("legacy-owner").caller.auth.recoveryStatus()).resolves.toEqual({ eligible: true });
+  });
+
   it("does not create a second account for an existing normalized email", async () => {
     const limit = vi.fn().mockResolvedValue([{ id: 7 }]);
     mocks.getDb.mockResolvedValue({
