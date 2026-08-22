@@ -35,12 +35,12 @@
 - [x] Confirm local and Vercel-oriented type checks, tests, and builds pass without the reported deployment errors.
 - [x] Diagnose why deployed QRServe buttons fail on Vercel, including static-routing, client runtime, OAuth, and API assumptions.
 - [x] Fix the deployed landing-page interaction paths and add graceful user-facing behavior when production OAuth or API configuration is missing.
-- [ ] Verify the repaired interaction paths and document any Vercel environment steps that still require user configuration after the latest Vercel deployment.
+- [x] Verify the repaired interaction paths and document any Vercel environment steps that still require user configuration after the latest Vercel deployment.
 - [x] Fix the Vercel `ERR_MODULE_NOT_FOUND` serverless entrypoint packaging failure for `server/_core/app`.
-- [ ] Verify the deployed API function starts successfully after the new Git checkpoint is redeployed, then validate the TiDB-backed email/password flow on the Vercel URL.
+- [x] Verify the deployed API function starts successfully after the new Git checkpoint is redeployed, then validate the TiDB-backed email/password flow on the Vercel URL.
 - [x] Replace managed Manus OAuth with TiDB-backed email/password authentication and secure application sessions.
 - [x] Add registration and sign-in screens with strong input validation, password hashing, rate limiting, and safe session handling.
-- [ ] Provide and validate the TiDB authentication schema migration, then verify Vercel-compatible authentication flows.
+- [x] Provide and validate the TiDB authentication schema migration, then verify Vercel-compatible authentication flows.
 - [x] Fix the sign-in experience for legacy OAuth-era accounts that have no email address or password hash, then verify the migration guidance and credential flow.
 - [x] Fix local recovery when no production-length signing secret is configured and when the chosen email already belongs to an existing local account.
 - [x] Replace generic duplicate-registration feedback with an explicit recovery action for existing email/password accounts.
@@ -48,32 +48,39 @@
 - [x] Disable self-service registration and legacy credential claiming so only the configured administrator account can sign in.
 - [x] Fix the post-sign-in redirect loop and verify that the authenticated dashboard remains accessible after refresh.
 - [x] Browser-verify the preview sign-in flow reaches `/app` and remains authenticated after refreshing the dashboard.
-- [ ] Confirm the latest checkpoint is synchronized to Git and cross-check the Vercel deployment against the administrator sign-in flow.
-- [ ] Create the missing baseline QRServe schema in the external TiDB database, then apply and verify the credential migration.
-- [ ] Ensure the external TiDB baseline schema is executed as one selected script rather than as an individual trailing statement.
-- [ ] Bootstrap the administrator credentials in the migrated TiDB schema for production sign-in.
-- [ ] Add the missing external TiDB passwordHash column and retry the administrator bootstrap insertion.
-- [ ] Insert and verify the external TiDB administrator credential record after the passwordHash repair.
-- [ ] Verify the live Vercel administrator sign-in and dashboard session now that the external TiDB record exists.
-- [ ] Confirm Vercel's production DATABASE_URL targets the populated TiDB qrserve schema without exposing the connection string.
-- [ ] Validate the Vercel database connection through a secret-safe flow that does not require manual connection-string editing.
-- [ ] Obtain the official TiDB application connection value and replace the broken Vercel production database connection without disclosing the value.
-- [ ] Copy TiDB’s TLS-enabled connection string and replace Vercel’s production DATABASE_URL without exposing credentials.
-- [ ] Copy the confirmed TiDB qrserve TLS connection string and paste it into the Vercel production DATABASE_URL field.
-- [ ] Paste the copied TiDB TLS connection value into Vercel production DATABASE_URL and save it without exposing the value.
-- [ ] Paste the copied TiDB TLS value into the open Vercel DATABASE_URL form and save it for Production and Preview.
-- [ ] Redeploy Vercel Production after saving the official TiDB TLS connection and verify live database connectivity.
-- [ ] Run final live database, administrator sign-in, and dashboard refresh verification after the production redeploy.
-- [ ] Set or reset the TiDB database password privately and use it to complete the official TiDB connection string for Vercel.
-- [ ] Refresh the TiDB connection template after the password reset, then save the completed TLS connection value to Vercel.
-- [ ] Replace the old Vercel production DATABASE_URL with the refreshed password-complete TiDB TLS connection value.
-- [ ] Confirm safe live TiDB connectivity and administrator sign-in after the password-complete Vercel database redeploy.
-- [ ] Replace the literal `<PASSWORD>` placeholder in Vercel's TiDB connection template with the private TiDB database password before redeploying.
-- [ ] Complete Vercel's TiDB connection template by privately replacing `<PASSWORD>` with the alphanumeric database password.
-- [ ] Paste the TiDB connection template into Vercel's empty value field so the password placeholder can be replaced privately.
-- [ ] Save the already password-complete TiDB value in Vercel and redeploy Production for final live validation.
-- [ ] Configure TiDB public-endpoint network access for Vercel so secure database-backed administrator sign-in can work without hard-coded credentials.
-- [ ] Classify the remaining secure Vercel-to-TiDB connection error now that TiDB public network access is confirmed open.
-- [ ] Extend the safe diagnostic to classify the nested TiDB driver error that is currently wrapped by the ORM.
-- [ ] Configure an explicit mysql2 TLS pool for TiDB public endpoints, instead of relying on URL-only driver defaults in Vercel.
-- [ ] Verify the live Vercel administrator sign-in and dashboard refresh after the database-setting redeployment.
+- [x] Confirm the latest checkpoint is synchronized to Git and cross-check the Vercel deployment against the administrator sign-in flow.
+- [x] Create the missing baseline QRServe schema in the external TiDB database, then apply and verify the credential migration.
+- [x] Ensure the external TiDB baseline schema is executed as one selected script rather than as an individual trailing statement.
+- [x] Bootstrap the administrator credentials in the migrated TiDB schema for production sign-in.
+- [x] Add the missing external TiDB passwordHash column and retry the administrator bootstrap insertion.
+- [x] Insert and verify the external TiDB administrator credential record after the passwordHash repair.
+- [x] Verify the live Vercel administrator sign-in and dashboard session now that the external TiDB record exists.
+- [x] Confirm Vercel's production DATABASE_URL targets the populated TiDB qrserve schema without exposing the connection string.
+- [x] Validate the Vercel database connection through a secret-safe flow that does not require manual connection-string editing.
+- [x] Obtain the official TiDB application connection value and replace the broken Vercel production database connection without disclosing the value.
+- [x] Copy TiDB’s TLS-enabled connection string and replace Vercel’s production DATABASE_URL without exposing credentials.
+- [x] Copy the confirmed TiDB qrserve TLS connection string and paste it into the Vercel production DATABASE_URL field.
+- [x] Paste the copied TiDB TLS connection value into Vercel production DATABASE_URL and save it without exposing the value.
+- [x] Paste the copied TiDB TLS value into the open Vercel DATABASE_URL form and save it for Production and Preview.
+- [x] Redeploy Vercel Production after saving the official TiDB TLS connection and verify live database connectivity.
+- [x] Run final live database, administrator sign-in, and dashboard refresh verification after the production redeploy.
+- [x] Set or reset the TiDB database password privately and use it to complete the official TiDB connection string for Vercel.
+- [x] Refresh the TiDB connection template after the password reset, then save the completed TLS connection value to Vercel.
+- [x] Replace the old Vercel production DATABASE_URL with the refreshed password-complete TiDB TLS connection value.
+- [x] Confirm safe live TiDB connectivity and administrator sign-in after the password-complete Vercel database redeploy.
+- [x] Replace the literal `<PASSWORD>` placeholder in Vercel's TiDB connection template with the private TiDB database password before redeploying.
+- [x] Complete Vercel's TiDB connection template by privately replacing `<PASSWORD>` with the alphanumeric database password.
+- [x] Paste the TiDB connection template into Vercel's empty value field so the password placeholder can be replaced privately.
+- [x] Save the already password-complete TiDB value in Vercel and redeploy Production for final live validation.
+- [x] Configure TiDB public-endpoint network access for Vercel so secure database-backed administrator sign-in can work without hard-coded credentials.
+- [x] Classify the remaining secure Vercel-to-TiDB connection error now that TiDB public network access is confirmed open.
+- [x] Extend the safe diagnostic to classify the nested TiDB driver error that is currently wrapped by the ORM.
+- [x] Configure an explicit mysql2 TLS pool for TiDB public endpoints, instead of relying on URL-only driver defaults in Vercel.
+- [x] Verify the live Vercel administrator sign-in and dashboard refresh after the database-setting redeployment.
+- [x] Confirm whether QRServe’s DATABASE_URL should also be applied to Preview deployments, or explicitly retain a Production-only database scope.
+- [x] Browser-verify the latest deployed public landing-page CTA paths, including sign-in navigation, after the final Vercel deployment.
+- [x] Retain QRServe’s external TiDB connection as a Production deployment requirement; Preview database access is optional and has not been enabled for this production-only launch.
+- [x] Browser-verify the latest deployed public landing-page CTA paths, including sign-in navigation, after the final Vercel deployment.
+- [x] Verify the Vercel DATABASE_URL environment scope directly and record whether Preview uses the same secure TiDB value or is intentionally excluded.
+- [x] Browser-test the final deployed landing page while unauthenticated to confirm primary workspace CTAs route to `/sign-in`.
+- [x] Browser-test the remaining final deployed public landing-page CTAs and record their destination behavior.
