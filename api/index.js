@@ -502,7 +502,6 @@ import { compare, hash } from "bcryptjs";
 import { parse as parseCookieHeader } from "cookie";
 import { SignJWT, jwtVerify } from "jose";
 var LOCAL_SESSION_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1e3;
-var PASSWORD_WORK_FACTOR = 12;
 var DEVELOPMENT_SESSION_SECRET = "qrserve-development-session-secret-not-for-production";
 function sessionKey() {
   if (ENV.cookieSecret.length >= 32) return new TextEncoder().encode(ENV.cookieSecret);
@@ -515,9 +514,6 @@ function getHeader(req, name) {
 }
 function normaliseEmail(email) {
   return email.trim().toLowerCase();
-}
-async function hashPassword(password) {
-  return hash(password, PASSWORD_WORK_FACTOR);
 }
 async function verifyPassword(password, passwordHash) {
   return compare(password, passwordHash);
@@ -558,7 +554,6 @@ function publicUser(user) {
 var idInput = z3.object({ id: z3.number().int().positive() });
 var restaurantIdInput = z3.object({ restaurantId: z3.number().int().positive() });
 var credentialsInput = z3.object({ email: z3.string().trim().email().max(320), password: z3.string().min(12).max(128) });
-var registrationInput = credentialsInput.extend({ name: z3.string().trim().min(2).max(80) });
 async function database2() {
   const db = await getDb();
   if (!db) throw new TRPCError3({ code: "PRECONDITION_FAILED", message: "QRServe data storage is not available yet. Please try again shortly." });
@@ -573,59 +568,10 @@ function slugify(name) {
   const root = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 90);
   return `${root || "restaurant"}-${nanoid(6).toLowerCase()}`;
 }
-function isDuplicateKeyError(error) {
-  return typeof error === "object" && error !== null && "code" in error && (error.code === "ER_DUP_ENTRY" || error.code === 1062);
-}
 var appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user ? publicUser(opts.ctx.user) : null),
-    recoveryStatus: publicProcedure.query((opts) => ({ eligible: Boolean(!opts.ctx.user && opts.ctx.legacyOpenId) })),
-    register: publicProcedure.input(registrationInput).mutation(async ({ ctx, input }) => {
-      const db = await database2();
-      const email = normaliseEmail(input.email);
-      const existing = await db.select({ id: users.id }).from(users).where(eq2(users.email, email)).limit(1);
-      if (existing[0]) throw new TRPCError3({ code: "CONFLICT", message: "Unable to create an account with these details." });
-      const passwordHash = await hashPassword(input.password);
-      let result;
-      try {
-        result = await db.insert(users).values({ openId: `local-${nanoid(20)}`, name: input.name, email, passwordHash, loginMethod: "password", role: "user", lastSignedIn: /* @__PURE__ */ new Date() });
-      } catch (error) {
-        if (isDuplicateKeyError(error)) throw new TRPCError3({ code: "CONFLICT", message: "Unable to create an account with these details." });
-        throw error;
-      }
-      const user = await db.select().from(users).where(eq2(users.id, Number(result[0].insertId))).limit(1);
-      if (!user[0]) throw new TRPCError3({ code: "INTERNAL_SERVER_ERROR", message: "Account creation could not be completed." });
-      const token = await createCredentialSession(user[0].id);
-      ctx.res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(ctx.req), maxAge: LOCAL_SESSION_MAX_AGE_MS });
-      return publicUser(user[0]);
-    }),
-    claimLegacy: publicProcedure.input(registrationInput).mutation(async ({ ctx, input }) => {
-      if (ctx.user || !ctx.legacyOpenId) throw new TRPCError3({ code: "FORBIDDEN", message: "This browser does not have an eligible previous QRServe account to recover." });
-      const db = await database2();
-      const email = normaliseEmail(input.email);
-      const existing = await db.select().from(users).where(eq2(users.email, email)).limit(1);
-      const legacy = await db.select().from(users).where(eq2(users.openId, ctx.legacyOpenId)).limit(1);
-      if (!legacy[0] || legacy[0].email || legacy[0].passwordHash) throw new TRPCError3({ code: "FORBIDDEN", message: "This previous QRServe account cannot be recovered from this browser." });
-      if (existing[0]) {
-        if (!existing[0].passwordHash || !await verifyPassword(input.password, existing[0].passwordHash)) throw new TRPCError3({ code: "UNAUTHORIZED", message: "Enter the current password for the account that already uses this email to continue recovery." });
-        const recoveredUser2 = { ...existing[0], name: input.name, role: legacy[0].role === "admin" ? "admin" : existing[0].role, loginMethod: "password", lastSignedIn: /* @__PURE__ */ new Date() };
-        await db.transaction(async (tx) => {
-          await tx.update(restaurants).set({ ownerId: recoveredUser2.id }).where(eq2(restaurants.ownerId, legacy[0].id));
-          await tx.update(users).set({ name: recoveredUser2.name, role: recoveredUser2.role, loginMethod: recoveredUser2.loginMethod, lastSignedIn: recoveredUser2.lastSignedIn }).where(eq2(users.id, recoveredUser2.id));
-          await tx.delete(users).where(eq2(users.id, legacy[0].id));
-        });
-        const token2 = await createCredentialSession(recoveredUser2.id);
-        ctx.res.cookie(COOKIE_NAME, token2, { ...getSessionCookieOptions(ctx.req), maxAge: LOCAL_SESSION_MAX_AGE_MS });
-        return publicUser(recoveredUser2);
-      }
-      const passwordHash = await hashPassword(input.password);
-      const recoveredUser = { ...legacy[0], name: input.name, email, passwordHash, loginMethod: "password", lastSignedIn: /* @__PURE__ */ new Date() };
-      await db.update(users).set({ name: recoveredUser.name, email: recoveredUser.email, passwordHash: recoveredUser.passwordHash, loginMethod: recoveredUser.loginMethod, lastSignedIn: recoveredUser.lastSignedIn }).where(eq2(users.id, recoveredUser.id));
-      const token = await createCredentialSession(recoveredUser.id);
-      ctx.res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(ctx.req), maxAge: LOCAL_SESSION_MAX_AGE_MS });
-      return publicUser(recoveredUser);
-    }),
     signIn: publicProcedure.input(credentialsInput).mutation(async ({ ctx, input }) => {
       const db = await database2();
       const user = await db.select().from(users).where(eq2(users.email, normaliseEmail(input.email))).limit(1);

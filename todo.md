@@ -44,3 +44,5 @@
 - [x] Fix the sign-in experience for legacy OAuth-era accounts that have no email address or password hash, then verify the migration guidance and credential flow.
 - [x] Fix local recovery when no production-length signing secret is configured and when the chosen email already belongs to an existing local account.
 - [x] Replace generic duplicate-registration feedback with an explicit recovery action for existing email/password accounts.
+- [x] Attach the user-specified administrator email/password to the existing legacy QRServe workspace and verify direct sign-in.
+- [x] Disable self-service registration and legacy credential claiming so only the configured administrator account can sign in.

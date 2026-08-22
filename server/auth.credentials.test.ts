@@ -11,14 +11,14 @@ vi.mock("./db", () => ({
 import { appRouter } from "./routers";
 import { COOKIE_NAME } from "../shared/const";
 import { ENV } from "./_core/env";
+import { hashPassword } from "./localAuth";
 
 type CookieCall = { name: string; value: string; options: Record<string, unknown> };
 
-function unauthenticatedCaller(legacyOpenId: string | null = null) {
+function unauthenticatedCaller() {
   const cookies: CookieCall[] = [];
   const ctx: TrpcContext = {
     user: null,
-    legacyOpenId,
     req: { protocol: "https", headers: {} } as TrpcContext["req"],
     res: {
       cookie: (name: string, value: string, options: Record<string, unknown>) => cookies.push({ name, value, options }),
@@ -28,129 +28,73 @@ function unauthenticatedCaller(legacyOpenId: string | null = null) {
   return { caller: appRouter.createCaller(ctx), cookies };
 }
 
-const existingUser = {
-  id: 7,
-  openId: "local-existing-user",
-  name: "Restaurant Owner",
-  email: "owner@example.com",
+const administrator = {
+  id: 1,
+  openId: "legacy-admin",
+  name: "Kaif",
+  email: "admin@kaif.com",
   passwordHash: null,
   loginMethod: "password",
-  role: "user" as const,
+  role: "admin" as const,
   createdAt: new Date(),
   updatedAt: new Date(),
   lastSignedIn: new Date(),
 };
 
-describe("credential authentication router", () => {
+describe("administrator-only authentication router", () => {
   beforeEach(() => {
     ENV.cookieSecret = "test-session-secret-with-at-least-32-characters";
     mocks.getDb.mockReset();
   });
 
-  it("rejects passwords shorter than twelve characters before accessing the database", async () => {
+  it("does not expose self-service registration or legacy-claim procedures", () => {
+    const procedures = (appRouter as unknown as { _def: { procedures: Record<string, unknown> } })._def.procedures;
+
+    expect(procedures).not.toHaveProperty("auth.register");
+    expect(procedures).not.toHaveProperty("auth.claimLegacy");
+    expect(procedures).toHaveProperty("auth.signIn");
+  });
+
+  it("rejects passwords shorter than twelve characters before database access", async () => {
     const { caller } = unauthenticatedCaller();
 
-    await expect(caller.auth.signIn({ email: "owner@example.com", password: "too-short" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(caller.auth.signIn({ email: "admin@kaif.com", password: "too-short" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(mocks.getDb).not.toHaveBeenCalled();
   });
 
-  it("only marks recovery eligible when the request holds a verified legacy identity", async () => {
-    await expect(unauthenticatedCaller().caller.auth.recoveryStatus()).resolves.toEqual({ eligible: false });
-    await expect(unauthenticatedCaller("legacy-owner").caller.auth.recoveryStatus()).resolves.toEqual({ eligible: true });
+  it("rejects an incorrect administrator password without issuing a session", async () => {
+    const limit = vi.fn().mockResolvedValue([{ ...administrator, passwordHash: await hashPassword("a-correct-administrator-password") }]);
+    mocks.getDb.mockResolvedValue({ select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit })) })) })) });
+    const { caller, cookies } = unauthenticatedCaller();
+
+    await expect(caller.auth.signIn({ email: "admin@kaif.com", password: "a-wrong-administrator-password" })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    expect(cookies).toHaveLength(0);
   });
 
-  it("does not create a second account for an existing normalized email", async () => {
-    const limit = vi.fn().mockResolvedValue([{ id: 7 }]);
+  it("issues an HTTPS-only, httpOnly session for valid administrator credentials", async () => {
+    const passwordHash = await hashPassword("a-correct-administrator-password");
+    const limit = vi.fn().mockResolvedValue([{ ...administrator, passwordHash }]);
+    const where = vi.fn().mockResolvedValue(undefined);
+    const set = vi.fn(() => ({ where }));
+    const update = vi.fn(() => ({ set }));
     mocks.getDb.mockResolvedValue({
       select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit })) })) })),
-    });
-    const { caller } = unauthenticatedCaller();
-
-    await expect(caller.auth.register({ name: "Restaurant Owner", email: " OWNER@EXAMPLE.COM ", password: "a-strong-password" })).rejects.toMatchObject({ code: "CONFLICT" });
-  });
-
-  it("rejects a password that does not verify and does not issue a session", async () => {
-    const limit = vi.fn().mockResolvedValue([{ ...existingUser, passwordHash: "$2b$12$baddataDoNotUseForARealPasswordHashxxxxxxxxxxxxxxxxxxxxxxxxxx" }]);
-    mocks.getDb.mockResolvedValue({
-      select: vi.fn(() => ({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit })) })) })),
+      update,
     });
     const { caller, cookies } = unauthenticatedCaller();
 
-    await expect(caller.auth.signIn({ email: "owner@example.com", password: "a-strong-password" })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-    expect(cookies).toHaveLength(0);
+    const user = await caller.auth.signIn({ email: "ADMIN@KAIF.COM", password: "a-correct-administrator-password" });
+
+    expect(user).toMatchObject({ id: 1, email: "admin@kaif.com", role: "admin" });
+    expect(user).not.toHaveProperty("passwordHash");
+    expect(cookies).toHaveLength(1);
+    expect(cookies[0]?.name).toBe(COOKIE_NAME);
+    expect(cookies[0]?.options).toMatchObject({ httpOnly: true, path: "/", sameSite: "lax", secure: true, maxAge: 14 * 24 * 60 * 60 * 1000 });
   });
 
   it("requires a session for protected restaurant procedures", async () => {
     const { caller } = unauthenticatedCaller();
 
     await expect(caller.restaurant.list()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-  });
-
-  it("sets an HTTPS-only, httpOnly, same-origin session cookie after registration", async () => {
-    const emptyLimit = vi.fn().mockResolvedValue([]);
-    const insertedLimit = vi.fn().mockResolvedValue([{ ...existingUser, passwordHash: "$2b$12$abcdefghijklmnopqrstuuJWnqTIQyNDmIyIYJZfVhP3PrFCNwJWxSXVhBJu" }]);
-    const insert = vi.fn(() => ({ values: vi.fn().mockResolvedValue([{ insertId: 7 }]) }));
-    const select = vi.fn()
-      .mockReturnValueOnce({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: emptyLimit })) })) })
-      .mockReturnValueOnce({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: insertedLimit })) })) });
-    mocks.getDb.mockResolvedValue({ select, insert });
-    const { caller, cookies } = unauthenticatedCaller();
-
-    const user = await caller.auth.register({ name: "Restaurant Owner", email: " OWNER@EXAMPLE.COM ", password: "a-strong-password" });
-
-    expect(user).not.toHaveProperty("passwordHash");
-    expect(insert).toHaveBeenCalledWith(expect.anything());
-    expect(cookies).toHaveLength(1);
-    expect(cookies[0]?.name).toBe(COOKIE_NAME);
-    expect(cookies[0]?.options).toMatchObject({ httpOnly: true, path: "/", sameSite: "lax", secure: true, maxAge: 14 * 24 * 60 * 60 * 1000 });
-  });
-
-  it("claims a legacy browser-verified account instead of creating a duplicate workspace", async () => {
-    const noMatchingEmail = vi.fn().mockResolvedValue([]);
-    const legacyAccount = { ...existingUser, openId: "legacy-owner", name: null, email: null, passwordHash: null, loginMethod: null };
-    const legacyLimit = vi.fn().mockResolvedValue([legacyAccount]);
-    const select = vi.fn()
-      .mockReturnValueOnce({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: noMatchingEmail })) })) })
-      .mockReturnValueOnce({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: legacyLimit })) })) });
-    const where = vi.fn().mockResolvedValue(undefined);
-    const set = vi.fn(() => ({ where }));
-    const update = vi.fn(() => ({ set }));
-    mocks.getDb.mockResolvedValue({ select, update });
-    const { caller, cookies } = unauthenticatedCaller("legacy-owner");
-
-    const user = await caller.auth.claimLegacy({ name: "Restaurant Owner", email: "OWNER@EXAMPLE.COM", password: "a-strong-password" });
-
-    expect(update).toHaveBeenCalledTimes(1);
-    expect(set).toHaveBeenCalledWith(expect.objectContaining({ email: "owner@example.com", loginMethod: "password" }));
-    expect(user).toMatchObject({ id: 7, email: "owner@example.com", name: "Restaurant Owner" });
-    expect(user).not.toHaveProperty("passwordHash");
-    expect(cookies).toHaveLength(1);
-  });
-
-  it("merges a legacy workspace into an existing email account only after its current password is proven", async () => {
-    const passwordHash = await (await import("./localAuth")).hashPassword("a-strong-password");
-    const existingAccount = { ...existingUser, passwordHash, role: "user" as const };
-    const legacyAccount = { ...existingUser, id: 1, openId: "legacy-owner", name: null, email: null, passwordHash: null, loginMethod: null, role: "admin" as const };
-    const existingLimit = vi.fn().mockResolvedValue([existingAccount]);
-    const legacyLimit = vi.fn().mockResolvedValue([legacyAccount]);
-    const select = vi.fn()
-      .mockReturnValueOnce({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: existingLimit })) })) })
-      .mockReturnValueOnce({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: legacyLimit })) })) });
-    const where = vi.fn().mockResolvedValue(undefined);
-    const set = vi.fn(() => ({ where }));
-    const update = vi.fn(() => ({ set }));
-    const deletedWhere = vi.fn().mockResolvedValue(undefined);
-    const remove = vi.fn(() => ({ where: deletedWhere }));
-    const transaction = vi.fn(async callback => callback({ update, delete: remove }));
-    mocks.getDb.mockResolvedValue({ select, transaction });
-    const { caller, cookies } = unauthenticatedCaller("legacy-owner");
-
-    const user = await caller.auth.claimLegacy({ name: "Restaurant Owner", email: "owner@example.com", password: "a-strong-password" });
-
-    expect(transaction).toHaveBeenCalledTimes(1);
-    expect(update).toHaveBeenCalledTimes(2);
-    expect(remove).toHaveBeenCalledTimes(1);
-    expect(user).toMatchObject({ id: 7, email: "owner@example.com", role: "admin" });
-    expect(cookies).toHaveLength(1);
   });
 });
