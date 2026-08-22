@@ -18,3 +18,8 @@
 - [x] Add missing functional safeguards for restaurant editing, category removal, public-menu analytics, and QR scan event handling.
 - [x] Add security-focused tests for authorization boundaries, input validation, rate limiting, and public-route privacy.
 - [x] Run dependency, type, test, build, and browser verification; resolve discovered defects and save the hardened checkpoint.
+- [x] Audit the current landing-page metadata, social sharing markup, canonical setup, and heading hierarchy.
+- [x] Add SEO title, 160-character description, canonical URL, Open Graph metadata, and mobile web metadata.
+- [x] Add SoftwareApplication and LocalBusiness JSON-LD schema without exposing customer or owner data.
+- [x] Refine the landing-page H1/H2 hierarchy around restaurant QR menu, digital menu generator, and contactless dining QR code.
+- [x] Verify the updated HTML and responsive landing page, run the build, and save the SEO checkpoint.
