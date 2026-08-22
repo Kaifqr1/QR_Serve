@@ -1,4 +1,6 @@
 import { OAUTH_STATE_COOKIE, encodeOAuthState } from "@shared/const";
+import { getOAuthConfigurationError } from "@/lib/oauthConfig";
+import { toast } from "sonner";
 
 export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 
@@ -15,6 +17,14 @@ export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 export const startLogin = () => {
   const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
   const appId = import.meta.env.VITE_APP_ID;
+  const configurationError = getOAuthConfigurationError(oauthPortalUrl, appId);
+  if (configurationError) {
+    toast.error("Sign-in is not configured yet", {
+      description: "The site owner needs to add the Vercel OAuth environment variables and redeploy.",
+    });
+    console.error(`[OAuth] ${configurationError}`);
+    return false;
+  }
   const redirectUri = `${window.location.origin}/api/oauth/callback`;
 
   const nonce = crypto.randomUUID();
@@ -28,4 +38,5 @@ export const startLogin = () => {
   url.searchParams.set("type", "signIn");
 
   window.location.href = url.toString();
+  return true;
 };

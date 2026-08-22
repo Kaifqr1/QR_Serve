@@ -33,3 +33,6 @@
 - [x] Respect reduced-motion preferences and verify the animated landing page on desktop and mobile.
 - [x] Fix Express 5 type compatibility in the security error handler, cookie helpers, and SDK request-header handling.
 - [x] Confirm local and Vercel-oriented type checks, tests, and builds pass without the reported deployment errors.
+- [x] Diagnose why deployed QRServe buttons fail on Vercel, including static-routing, client runtime, OAuth, and API assumptions.
+- [x] Fix the deployed landing-page interaction paths and add graceful user-facing behavior when production OAuth or API configuration is missing.
+- [ ] Verify the repaired interaction paths and document any Vercel environment steps that still require user configuration after the latest Vercel deployment.
