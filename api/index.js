@@ -197,11 +197,14 @@ function isSecureRequest(req) {
   return protoList.some((proto) => proto.trim().toLowerCase() === "https");
 }
 function getSessionCookieOptions(req) {
+  const secure = isSecureRequest(req);
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "lax",
-    secure: isSecureRequest(req)
+    // The hosted development preview runs inside an iframe on a different site.
+    // Its HTTPS requests need a third-party cookie; production remains same-origin.
+    sameSite: !ENV.isProduction && secure ? "none" : "lax",
+    secure
   };
 }
 

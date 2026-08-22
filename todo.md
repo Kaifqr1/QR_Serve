@@ -46,3 +46,5 @@
 - [x] Replace generic duplicate-registration feedback with an explicit recovery action for existing email/password accounts.
 - [x] Attach the user-specified administrator email/password to the existing legacy QRServe workspace and verify direct sign-in.
 - [x] Disable self-service registration and legacy credential claiming so only the configured administrator account can sign in.
+- [x] Fix the post-sign-in redirect loop and verify that the authenticated dashboard remains accessible after refresh.
+- [x] Browser-verify the preview sign-in flow reaches `/app` and remains authenticated after refreshing the dashboard.

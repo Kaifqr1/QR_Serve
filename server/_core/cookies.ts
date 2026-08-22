@@ -1,3 +1,5 @@
+import { ENV } from "./env";
+
 type HeaderValue = string | string[] | undefined;
 
 export type RequestTransport = {
@@ -8,7 +10,7 @@ export type RequestTransport = {
 export type SessionCookieOptions = {
   httpOnly: true;
   path: "/";
-  sameSite: "lax";
+  sameSite: "lax" | "none";
   secure: boolean;
 };
 
@@ -28,10 +30,13 @@ function isSecureRequest(req: RequestTransport) {
 export function getSessionCookieOptions(
   req: RequestTransport
 ): SessionCookieOptions {
+  const secure = isSecureRequest(req);
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "lax",
-    secure: isSecureRequest(req),
+    // The hosted development preview runs inside an iframe on a different site.
+    // Its HTTPS requests need a third-party cookie; production remains same-origin.
+    sameSite: !ENV.isProduction && secure ? "none" : "lax",
+    secure,
   };
 }

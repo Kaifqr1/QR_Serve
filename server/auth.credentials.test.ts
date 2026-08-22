@@ -89,7 +89,7 @@ describe("administrator-only authentication router", () => {
     expect(user).not.toHaveProperty("passwordHash");
     expect(cookies).toHaveLength(1);
     expect(cookies[0]?.name).toBe(COOKIE_NAME);
-    expect(cookies[0]?.options).toMatchObject({ httpOnly: true, path: "/", sameSite: "lax", secure: true, maxAge: 14 * 24 * 60 * 60 * 1000 });
+    expect(cookies[0]?.options).toMatchObject({ httpOnly: true, path: "/", sameSite: "none", secure: true, maxAge: 14 * 24 * 60 * 60 * 1000 });
   });
 
   it("requires a session for protected restaurant procedures", async () => {
