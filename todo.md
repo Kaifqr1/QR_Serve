@@ -29,3 +29,5 @@
 - [x] Run a deployment-oriented build check, produce a concise readiness checklist, and save the Vercel preparation checkpoint.
 - [x] Replace the current landing-page hero image with an impactful QRServe-branded editorial visual.
 - [x] Verify the new hero visual at desktop and mobile widths, then save the updated checkpoint.
+- [x] Add scroll-triggered reveal animation to the landing-page sections and feature cards.
+- [x] Respect reduced-motion preferences and verify the animated landing page on desktop and mobile.
