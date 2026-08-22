@@ -23,3 +23,7 @@
 - [x] Add SoftwareApplication and LocalBusiness JSON-LD schema without exposing customer or owner data.
 - [x] Refine the landing-page H1/H2 hierarchy around restaurant QR menu, digital menu generator, and contactless dining QR code.
 - [x] Verify the updated HTML and responsive landing page, run the build, and save the SEO checkpoint.
+- [x] Audit QRServe’s current server, build, storage, OAuth, database, and environment assumptions for Vercel compatibility.
+- [x] Add Vercel deployment configuration for the React/Express application without changing managed production hosting.
+- [x] Document Vercel production environment variables, OAuth callback requirements, database connectivity, storage behavior, and custom-domain metadata steps.
+- [x] Run a deployment-oriented build check, produce a concise readiness checklist, and save the Vercel preparation checkpoint.

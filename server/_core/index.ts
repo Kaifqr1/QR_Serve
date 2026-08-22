@@ -1,14 +1,8 @@
 import "dotenv/config";
-import express from "express";
 import { createServer } from "http";
 import net from "net";
-import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { registerOAuthRoutes } from "./oauth";
-import { registerStorageProxy } from "./storageProxy";
-import { appRouter } from "../routers";
-import { createContext } from "./context";
+import { createQrServeApp } from "./app";
 import { serveStatic, setupVite } from "./vite";
-import { apiRateLimiter, authRateLimiter, BODY_SIZE_LIMIT, configureSecurity, securityErrorHandler } from "../security";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -30,24 +24,8 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
-  const app = express();
+  const app = createQrServeApp();
   const server = createServer(app);
-  configureSecurity(app);
-  app.use(express.json({ limit: BODY_SIZE_LIMIT, strict: true }));
-  app.use(express.urlencoded({ limit: BODY_SIZE_LIMIT, extended: false }));
-  app.use("/api/oauth/callback", authRateLimiter);
-  app.use("/api/trpc", apiRateLimiter);
-  registerStorageProxy(app);
-  registerOAuthRoutes(app);
-  // tRPC API
-  app.use(
-    "/api/trpc",
-    createExpressMiddleware({
-      router: appRouter,
-      createContext,
-    })
-  );
-  app.use(securityErrorHandler);
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

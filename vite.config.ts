@@ -150,7 +150,17 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+function vitePluginSiteUrl(): Plugin {
+  return {
+    name: "qrserve-site-url",
+    transformIndexHtml(html) {
+      const siteUrl = (process.env.VITE_PUBLIC_SITE_URL || "https://qrserve.app").replace(/\/+$/, "");
+      return html.replaceAll("https://qrserve.app", siteUrl);
+    },
+  };
+}
+
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginSiteUrl()];
 
 export default defineConfig({
   plugins,
@@ -165,7 +175,7 @@ export default defineConfig({
   root: path.resolve(import.meta.dirname, "client"),
   publicDir: path.resolve(import.meta.dirname, "client", "public"),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    outDir: process.env.VERCEL ? path.resolve(import.meta.dirname, "public") : path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
   server: {
