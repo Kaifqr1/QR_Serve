@@ -2,7 +2,7 @@ import { SignJWT } from "jose";
 import { describe, expect, it } from "vitest";
 import { COOKIE_NAME } from "../shared/const";
 import { ENV } from "./_core/env";
-import { getCredentialSessionUser, getLegacySessionOpenId, hashPassword, normaliseEmail, publicUser, verifyPassword } from "./localAuth";
+import { createCredentialSession, getCredentialSessionUser, getLegacySessionOpenId, hashPassword, normaliseEmail, publicUser, verifyPassword } from "./localAuth";
 
 describe("local credential authentication", () => {
   it("normalises email addresses before identity lookup", () => {
@@ -29,6 +29,18 @@ describe("local credential authentication", () => {
 
     await expect(getLegacySessionOpenId({ headers: { cookie: `${COOKIE_NAME}=${token}` } })).resolves.toBe("legacy-owner");
     await expect(getLegacySessionOpenId({ headers: { cookie: `${COOKIE_NAME}=not-a-token` } })).resolves.toBeNull();
+  });
+
+  it("uses a development-only session key when no secret is configured and rejects that configuration in production", async () => {
+    const originalSecret = ENV.cookieSecret;
+    const originalProduction = ENV.isProduction;
+    ENV.cookieSecret = "";
+    ENV.isProduction = false;
+    await expect(createCredentialSession(4)).resolves.toEqual(expect.any(String));
+    ENV.isProduction = true;
+    await expect(createCredentialSession(4)).rejects.toThrow("JWT_SECRET must be at least 32 characters in production.");
+    ENV.cookieSecret = originalSecret;
+    ENV.isProduction = originalProduction;
   });
 
   it("never returns a password hash in the public user response", () => {

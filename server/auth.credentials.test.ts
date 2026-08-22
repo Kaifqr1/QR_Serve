@@ -121,4 +121,31 @@ describe("credential authentication router", () => {
     expect(user).not.toHaveProperty("passwordHash");
     expect(cookies).toHaveLength(1);
   });
+
+  it("merges a legacy workspace into an existing email account only after its current password is proven", async () => {
+    const passwordHash = await (await import("./localAuth")).hashPassword("a-strong-password");
+    const existingAccount = { ...existingUser, passwordHash, role: "user" as const };
+    const legacyAccount = { ...existingUser, id: 1, openId: "legacy-owner", name: null, email: null, passwordHash: null, loginMethod: null, role: "admin" as const };
+    const existingLimit = vi.fn().mockResolvedValue([existingAccount]);
+    const legacyLimit = vi.fn().mockResolvedValue([legacyAccount]);
+    const select = vi.fn()
+      .mockReturnValueOnce({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: existingLimit })) })) })
+      .mockReturnValueOnce({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: legacyLimit })) })) });
+    const where = vi.fn().mockResolvedValue(undefined);
+    const set = vi.fn(() => ({ where }));
+    const update = vi.fn(() => ({ set }));
+    const deletedWhere = vi.fn().mockResolvedValue(undefined);
+    const remove = vi.fn(() => ({ where: deletedWhere }));
+    const transaction = vi.fn(async callback => callback({ update, delete: remove }));
+    mocks.getDb.mockResolvedValue({ select, transaction });
+    const { caller, cookies } = unauthenticatedCaller("legacy-owner");
+
+    const user = await caller.auth.claimLegacy({ name: "Restaurant Owner", email: "owner@example.com", password: "a-strong-password" });
+
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(user).toMatchObject({ id: 7, email: "owner@example.com", role: "admin" });
+    expect(cookies).toHaveLength(1);
+  });
 });

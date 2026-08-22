@@ -503,9 +503,11 @@ import { parse as parseCookieHeader } from "cookie";
 import { SignJWT, jwtVerify } from "jose";
 var LOCAL_SESSION_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1e3;
 var PASSWORD_WORK_FACTOR = 12;
+var DEVELOPMENT_SESSION_SECRET = "qrserve-development-session-secret-not-for-production";
 function sessionKey() {
-  if (ENV.cookieSecret.length < 32) throw new Error("JWT_SECRET must be at least 32 characters in production.");
-  return new TextEncoder().encode(ENV.cookieSecret);
+  if (ENV.cookieSecret.length >= 32) return new TextEncoder().encode(ENV.cookieSecret);
+  if (ENV.isProduction) throw new Error("JWT_SECRET must be at least 32 characters in production.");
+  return new TextEncoder().encode(DEVELOPMENT_SESSION_SECRET);
 }
 function getHeader(req, name) {
   const value = req.headers?.[name];
@@ -601,10 +603,21 @@ var appRouter = router({
       if (ctx.user || !ctx.legacyOpenId) throw new TRPCError3({ code: "FORBIDDEN", message: "This browser does not have an eligible previous QRServe account to recover." });
       const db = await database2();
       const email = normaliseEmail(input.email);
-      const existing = await db.select({ id: users.id }).from(users).where(eq2(users.email, email)).limit(1);
-      if (existing[0]) throw new TRPCError3({ code: "CONFLICT", message: "Unable to use these account details." });
+      const existing = await db.select().from(users).where(eq2(users.email, email)).limit(1);
       const legacy = await db.select().from(users).where(eq2(users.openId, ctx.legacyOpenId)).limit(1);
       if (!legacy[0] || legacy[0].email || legacy[0].passwordHash) throw new TRPCError3({ code: "FORBIDDEN", message: "This previous QRServe account cannot be recovered from this browser." });
+      if (existing[0]) {
+        if (!existing[0].passwordHash || !await verifyPassword(input.password, existing[0].passwordHash)) throw new TRPCError3({ code: "UNAUTHORIZED", message: "Enter the current password for the account that already uses this email to continue recovery." });
+        const recoveredUser2 = { ...existing[0], name: input.name, role: legacy[0].role === "admin" ? "admin" : existing[0].role, loginMethod: "password", lastSignedIn: /* @__PURE__ */ new Date() };
+        await db.transaction(async (tx) => {
+          await tx.update(restaurants).set({ ownerId: recoveredUser2.id }).where(eq2(restaurants.ownerId, legacy[0].id));
+          await tx.update(users).set({ name: recoveredUser2.name, role: recoveredUser2.role, loginMethod: recoveredUser2.loginMethod, lastSignedIn: recoveredUser2.lastSignedIn }).where(eq2(users.id, recoveredUser2.id));
+          await tx.delete(users).where(eq2(users.id, legacy[0].id));
+        });
+        const token2 = await createCredentialSession(recoveredUser2.id);
+        ctx.res.cookie(COOKIE_NAME, token2, { ...getSessionCookieOptions(ctx.req), maxAge: LOCAL_SESSION_MAX_AGE_MS });
+        return publicUser(recoveredUser2);
+      }
       const passwordHash = await hashPassword(input.password);
       const recoveredUser = { ...legacy[0], name: input.name, email, passwordHash, loginMethod: "password", lastSignedIn: /* @__PURE__ */ new Date() };
       await db.update(users).set({ name: recoveredUser.name, email: recoveredUser.email, passwordHash: recoveredUser.passwordHash, loginMethod: recoveredUser.loginMethod, lastSignedIn: recoveredUser.lastSignedIn }).where(eq2(users.id, recoveredUser.id));

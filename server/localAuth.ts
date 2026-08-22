@@ -8,14 +8,16 @@ import { ENV } from "./_core/env";
 
 export const LOCAL_SESSION_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 const PASSWORD_WORK_FACTOR = 12;
+const DEVELOPMENT_SESSION_SECRET = "qrserve-development-session-secret-not-for-production";
 
 type HeaderCarrier = { headers?: Record<string, string | string[] | undefined> };
 type CredentialSession = { uid: number; kind: "qrserve-password" };
 type LegacySession = { openId: string; appId: string };
 
 function sessionKey() {
-  if (ENV.cookieSecret.length < 32) throw new Error("JWT_SECRET must be at least 32 characters in production.");
-  return new TextEncoder().encode(ENV.cookieSecret);
+  if (ENV.cookieSecret.length >= 32) return new TextEncoder().encode(ENV.cookieSecret);
+  if (ENV.isProduction) throw new Error("JWT_SECRET must be at least 32 characters in production.");
+  return new TextEncoder().encode(DEVELOPMENT_SESSION_SECRET);
 }
 
 function getHeader(req: HeaderCarrier, name: string) {

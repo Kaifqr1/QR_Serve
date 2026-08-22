@@ -60,7 +60,7 @@ export default function SignIn() {
   const description = mode === "signIn"
     ? "Sign in to edit your restaurant menus and QR destinations."
     : mode === "recover"
-      ? "Use this only in the browser where you used QRServe before the email/password update. Your menus stay connected to the same workspace."
+      ? "Use this only in the browser where you used QRServe before the email/password update. If this email already has a QRServe account, enter that account’s current password to merge the previous workspace safely."
       : "Set up a secure account to begin publishing your restaurant menu.";
 
   return (

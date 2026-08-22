@@ -66,10 +66,21 @@ export const appRouter = router({
       if (ctx.user || !ctx.legacyOpenId) throw new TRPCError({ code: "FORBIDDEN", message: "This browser does not have an eligible previous QRServe account to recover." });
       const db = await database();
       const email = normaliseEmail(input.email);
-      const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
-      if (existing[0]) throw new TRPCError({ code: "CONFLICT", message: "Unable to use these account details." });
+      const existing = await db.select().from(users).where(eq(users.email, email)).limit(1);
       const legacy = await db.select().from(users).where(eq(users.openId, ctx.legacyOpenId)).limit(1);
       if (!legacy[0] || legacy[0].email || legacy[0].passwordHash) throw new TRPCError({ code: "FORBIDDEN", message: "This previous QRServe account cannot be recovered from this browser." });
+      if (existing[0]) {
+        if (!existing[0].passwordHash || !(await verifyPassword(input.password, existing[0].passwordHash))) throw new TRPCError({ code: "UNAUTHORIZED", message: "Enter the current password for the account that already uses this email to continue recovery." });
+        const recoveredUser = { ...existing[0], name: input.name, role: legacy[0].role === "admin" ? "admin" as const : existing[0].role, loginMethod: "password", lastSignedIn: new Date() };
+        await db.transaction(async tx => {
+          await tx.update(restaurants).set({ ownerId: recoveredUser.id }).where(eq(restaurants.ownerId, legacy[0].id));
+          await tx.update(users).set({ name: recoveredUser.name, role: recoveredUser.role, loginMethod: recoveredUser.loginMethod, lastSignedIn: recoveredUser.lastSignedIn }).where(eq(users.id, recoveredUser.id));
+          await tx.delete(users).where(eq(users.id, legacy[0].id));
+        });
+        const token = await createCredentialSession(recoveredUser.id);
+        ctx.res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(ctx.req), maxAge: LOCAL_SESSION_MAX_AGE_MS });
+        return publicUser(recoveredUser);
+      }
       const passwordHash = await hashPassword(input.password);
       const recoveredUser = { ...legacy[0], name: input.name, email, passwordHash, loginMethod: "password", lastSignedIn: new Date() };
       await db.update(users).set({ name: recoveredUser.name, email: recoveredUser.email, passwordHash: recoveredUser.passwordHash, loginMethod: recoveredUser.loginMethod, lastSignedIn: recoveredUser.lastSignedIn }).where(eq(users.id, recoveredUser.id));
