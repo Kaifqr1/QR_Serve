@@ -48,3 +48,4 @@
 - [x] Disable self-service registration and legacy credential claiming so only the configured administrator account can sign in.
 - [x] Fix the post-sign-in redirect loop and verify that the authenticated dashboard remains accessible after refresh.
 - [x] Browser-verify the preview sign-in flow reaches `/app` and remains authenticated after refreshing the dashboard.
+- [ ] Confirm the latest checkpoint is synchronized to Git and cross-check the Vercel deployment against the administrator sign-in flow.
