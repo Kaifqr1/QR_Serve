@@ -36,3 +36,5 @@
 - [x] Diagnose why deployed QRServe buttons fail on Vercel, including static-routing, client runtime, OAuth, and API assumptions.
 - [x] Fix the deployed landing-page interaction paths and add graceful user-facing behavior when production OAuth or API configuration is missing.
 - [ ] Verify the repaired interaction paths and document any Vercel environment steps that still require user configuration after the latest Vercel deployment.
+- [x] Fix the Vercel `ERR_MODULE_NOT_FOUND` serverless entrypoint packaging failure for `server/_core/app`.
+- [ ] Verify the deployed API function starts successfully after the new Git checkpoint is redeployed and resolve the OAuth redirect-domain restriction for the Vercel URL.

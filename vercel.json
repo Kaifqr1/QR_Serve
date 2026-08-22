@@ -3,6 +3,11 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm run build:vercel",
   "outputDirectory": "public",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "server/**"
+    }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index" },
     { "source": "/manus-storage/(.*)", "destination": "/api/index" },
