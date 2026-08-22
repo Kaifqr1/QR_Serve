@@ -2,7 +2,6 @@ import { AXIOS_TIMEOUT_MS, COOKIE_NAME, ONE_YEAR_MS, decodeOAuthState } from "@s
 import { ForbiddenError } from "@shared/_core/errors";
 import axios, { type AxiosInstance } from "axios";
 import { parse as parseCookieHeader } from "cookie";
-import type { Request } from "express";
 import { SignJWT, jwtVerify } from "jose";
 import type { User } from "../../drizzle/schema";
 import * as db from "../db";
@@ -23,6 +22,15 @@ export type SessionPayload = {
   appId: string;
   name: string;
 };
+
+type HeaderCarrier = {
+  headers?: Record<string, string | string[] | undefined>;
+};
+
+function getRequestHeader(req: HeaderCarrier, name: string): string | undefined {
+  const value = req.headers?.[name];
+  return Array.isArray(value) ? value[0] : value;
+}
 
 const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
 const GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
@@ -255,16 +263,16 @@ class SDKServer {
     } as GetUserInfoWithJwtResponse;
   }
 
-  async authenticateRequest(req: Request): Promise<AuthenticatedUser> {
+  async authenticateRequest(req: HeaderCarrier): Promise<AuthenticatedUser> {
     // 1. Prefer the session cookie (regular OAuth login).
-    const cookies = this.parseCookies(req.headers.cookie);
+    const cookies = this.parseCookies(getRequestHeader(req, "cookie"));
     let sessionToken = cookies.get(COOKIE_NAME);
 
     // 2. Fallback to the Authorization header (Preview auto-login via
     //    sessionStorage), used when the browser blocks iframe cookies such as
     //    Safari ITP, private browsing, or iOS/Android WebView.
     if (!sessionToken) {
-      const authHeader = req.headers.authorization;
+      const authHeader = getRequestHeader(req, "authorization");
       if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
         sessionToken = authHeader.slice(7);
       }

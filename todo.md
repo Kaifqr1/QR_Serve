@@ -31,3 +31,5 @@
 - [x] Verify the new hero visual at desktop and mobile widths, then save the updated checkpoint.
 - [x] Add scroll-triggered reveal animation to the landing-page sections and feature cards.
 - [x] Respect reduced-motion preferences and verify the animated landing page on desktop and mobile.
+- [x] Fix Express 5 type compatibility in the security error handler, cookie helpers, and SDK request-header handling.
+- [x] Confirm local and Vercel-oriented type checks, tests, and builds pass without the reported deployment errors.

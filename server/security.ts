@@ -1,4 +1,4 @@
-import type { ErrorRequestHandler, Express } from "express";
+import type { Express } from "express";
 import cors from "cors";
 import { rateLimit } from "express-rate-limit";
 import helmet from "helmet";
@@ -93,7 +93,14 @@ export function configureSecurity(app: Express) {
   }));
 }
 
-export const securityErrorHandler: ErrorRequestHandler = (error, _req, res, next) => {
+type ErrorResponse = {
+  status: (code: number) => ErrorResponse;
+  json: (body: unknown) => unknown;
+};
+
+type ErrorNext = (error?: unknown) => void;
+
+export const securityErrorHandler = (error: unknown, _req: unknown, res: ErrorResponse, next: ErrorNext): void => {
   if (error instanceof Error && error.message === "CORS origin is not allowed") {
     res.status(403).json({ success: false, error: { code: "CORS_ORIGIN_DENIED", message: "This origin is not permitted to access QRServe." } });
     return;
