@@ -382,6 +382,8 @@ var systemRouter = router({
 
 // server/storage.ts
 var cloudinarySdk;
+var rememberedCloudinaryUrl;
+var configuredCloudinarySdk;
 async function loadCloudinary() {
   if (!cloudinarySdk) {
     const inheritedUrl = process.env.CLOUDINARY_URL;
@@ -393,14 +395,33 @@ async function loadCloudinary() {
   }
   return cloudinarySdk;
 }
+async function configureCloudinary() {
+  if (!configuredCloudinarySdk) {
+    const inheritedUrl = process.env.CLOUDINARY_URL ?? rememberedCloudinaryUrl;
+    if (inheritedUrl !== void 0) rememberedCloudinaryUrl = inheritedUrl;
+    const credentials = cloudinaryCredentials(inheritedUrl);
+    configuredCloudinarySdk = (async () => {
+      delete process.env.CLOUDINARY_URL;
+      try {
+        const cloudinary = await loadCloudinary();
+        cloudinary.config(credentials);
+        return cloudinary;
+      } finally {
+        if (inheritedUrl === void 0) delete process.env.CLOUDINARY_URL;
+        else process.env.CLOUDINARY_URL = inheritedUrl;
+      }
+    })();
+  }
+  return configuredCloudinarySdk;
+}
 var StorageConfigurationError = class extends Error {
   constructor() {
     super("Cloudinary image storage is not configured.");
     this.name = "StorageConfigurationError";
   }
 };
-function cloudinaryCredentials() {
-  const configuredUrl = process.env.CLOUDINARY_URL?.trim().replace(/^CLOUDINARY_URL\s*=\s*/i, "");
+function cloudinaryCredentials(rawConfiguredUrl = process.env.CLOUDINARY_URL) {
+  const configuredUrl = rawConfiguredUrl?.trim().replace(/^CLOUDINARY_URL\s*=\s*/i, "");
   if (configuredUrl) {
     try {
       const endpoint = new URL(configuredUrl);
@@ -432,8 +453,7 @@ function createUniquePublicId(relativeKey) {
 }
 async function storagePut(relativeKey, data, contentType = "application/octet-stream") {
   const publicId = createUniquePublicId(relativeKey);
-  const cloudinary = await loadCloudinary();
-  cloudinary.config(cloudinaryCredentials());
+  const cloudinary = await configureCloudinary();
   const bytes = typeof data === "string" ? Buffer.from(data) : Buffer.from(data);
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(

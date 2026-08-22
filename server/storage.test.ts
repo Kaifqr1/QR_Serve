@@ -48,6 +48,9 @@ describe("Cloudinary storage", () => {
   it("uploads repeat filenames through the authenticated server SDK with distinct public IDs and public HTTPS URLs", async () => {
     process.env.CLOUDINARY_URL = "CLOUDINARY_URL=cloudinary://example-key:example-secret@qrserve";
     const publicIds: string[] = [];
+    mocks.config.mockImplementation(() => {
+      expect(process.env.CLOUDINARY_URL).toBeUndefined();
+    });
     mocks.uploadStream.mockImplementation((options: Record<string, unknown>, callback: (error?: Error, result?: { secure_url?: string; public_id?: string }) => void) => {
       const publicId = String(options.public_id);
       publicIds.push(publicId);

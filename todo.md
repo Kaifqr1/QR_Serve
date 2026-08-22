@@ -90,3 +90,4 @@
 - [x] Connect Cloudinary production storage and add its server-side credentials for QRServe dish-image uploads.
 - [x] Make repeated dish-image uploads collision-safe when files share the same name.
 - [ ] Prevent Cloudinary environment auto-parsing from crashing live QRServe authentication, then re-verify the Vercel upload route.
+- [ ] Diagnose and correct the Cloudinary rejection returned by the live menu image-upload mutation.
