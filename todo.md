@@ -84,3 +84,8 @@
 - [x] Verify the Vercel DATABASE_URL environment scope directly and record whether Preview uses the same secure TiDB value or is intentionally excluded.
 - [x] Browser-test the final deployed landing page while unauthenticated to confirm primary workspace CTAs route to `/sign-in`.
 - [x] Browser-test the remaining final deployed public landing-page CTAs and record their destination behavior.
+- [x] Diagnose the live dish-image upload failure in the QRServe menu builder.
+- [x] Replace the unavailable managed storage dependency with a secure Vercel-compatible image upload and delivery path.
+- [ ] Verify dish-image upload, persistence, and public-menu rendering on Vercel.
+- [ ] Connect Cloudinary production storage and add its server-side credentials for QRServe dish-image uploads.
+- [x] Make repeated dish-image uploads collision-safe when files share the same name.

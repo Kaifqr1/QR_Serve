@@ -8,7 +8,7 @@ import { getDb, getOwnedRestaurant } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { storagePut } from "./storage";
+import { StorageConfigurationError, storagePut } from "./storage";
 import { COOKIE_NAME } from "@shared/const";
 import { isImageSignatureValid } from "./security";
 import { createCredentialSession, hashPassword, LOCAL_SESSION_MAX_AGE_MS, normaliseEmail, publicUser, verifyPassword } from "./localAuth";
@@ -151,7 +151,15 @@ export const appRouter = router({
       if (!match || match[1] !== input.contentType) throw new TRPCError({ code: "BAD_REQUEST", message: "Please choose a valid JPG, PNG, or WebP image." });
       const bytes = Buffer.from(match[2], "base64"); if (bytes.byteLength > 5_000_000) throw new TRPCError({ code: "PAYLOAD_TOO_LARGE", message: "Image files must be 5 MB or smaller." });
       if (!isImageSignatureValid(bytes, input.contentType)) throw new TRPCError({ code: "BAD_REQUEST", message: "The image content does not match its declared file type." });
-      return storagePut(`qrserve/${ctx.user.id}/menu-images/${input.filename.replace(/\s+/g, "-").toLowerCase()}`, bytes, input.contentType);
+      const safeFilename = input.filename.replace(/\s+/g, "-").toLowerCase();
+      try {
+        return await storagePut(`qrserve/${ctx.user.id}/menu-images/${safeFilename}`, bytes, input.contentType);
+      } catch (error) {
+        if (error instanceof StorageConfigurationError) {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Dish image uploads are not connected yet. Please finish the secure image-storage setup and try again." });
+        }
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "We could not upload that image. Please try again." });
+      }
     }),
   }),
   public: router({

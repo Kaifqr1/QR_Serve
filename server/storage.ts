@@ -1,97 +1,87 @@
-// Preconfigured storage helpers for Manus WebDev templates
-// Uploads via Forge Server presigned URL to S3 (PUT direct).
-// Downloads return /manus-storage/{key} paths served via 307 redirect.
+import { v2 as cloudinary } from "cloudinary";
 
-import { ENV } from "./_core/env";
+type CloudinaryCredentials = {
+  cloud_name: string;
+  api_key: string;
+  api_secret: string;
+  secure: true;
+};
 
-function getForgeConfig() {
-  const forgeUrl = ENV.forgeApiUrl;
-  const forgeKey = ENV.forgeApiKey;
+export class StorageConfigurationError extends Error {
+  constructor() {
+    super("Cloudinary image storage is not configured.");
+    this.name = "StorageConfigurationError";
+  }
+}
 
-  if (!forgeUrl || !forgeKey) {
-    throw new Error(
-      "Storage config missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY",
-    );
+function cloudinaryCredentials(): CloudinaryCredentials {
+  const configuredUrl = process.env.CLOUDINARY_URL?.trim();
+  if (configuredUrl) {
+    try {
+      const endpoint = new URL(configuredUrl);
+      if (endpoint.protocol === "cloudinary:" && endpoint.hostname && endpoint.username && endpoint.password) {
+        return {
+          cloud_name: endpoint.hostname,
+          api_key: decodeURIComponent(endpoint.username),
+          api_secret: decodeURIComponent(endpoint.password),
+          secure: true,
+        };
+      }
+    } catch {
+      // Fall through to the safe configuration error below.
+    }
+    throw new StorageConfigurationError();
   }
 
-  return { forgeUrl: forgeUrl.replace(/\/+$/, ""), forgeKey };
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+  const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
+  const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
+  if (!cloudName || !apiKey || !apiSecret) throw new StorageConfigurationError();
+  return { cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret, secure: true };
 }
 
-function normalizeKey(relKey: string): string {
-  return relKey.replace(/^\/+/, "");
+function normalisePublicId(relativeKey: string): string {
+  const clean = relativeKey.replace(/^\/+/, "").replace(/\.[a-z0-9]+$/i, "");
+  if (!clean || !/^[-a-zA-Z0-9_/.]+$/.test(clean)) throw new Error("Invalid image storage key.");
+  return clean;
 }
 
-function appendHashSuffix(relKey: string): string {
-  const hash = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
-  const lastDot = relKey.lastIndexOf(".");
-  if (lastDot === -1) return `${relKey}_${hash}`;
-  return `${relKey.slice(0, lastDot)}_${hash}${relKey.slice(lastDot)}`;
+function createUniquePublicId(relativeKey: string): string {
+  return `${normalisePublicId(relativeKey)}-${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
 }
 
 export async function storagePut(
-  relKey: string,
+  relativeKey: string,
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream",
 ): Promise<{ key: string; url: string }> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
-  const key = appendHashSuffix(normalizeKey(relKey));
+  const publicId = createUniquePublicId(relativeKey);
+  cloudinary.config(cloudinaryCredentials());
+  const bytes = typeof data === "string" ? Buffer.from(data) : Buffer.from(data);
 
-  // 1. Get presigned PUT URL from Forge
-  const presignUrl = new URL("v1/storage/presign/put", forgeUrl + "/");
-  presignUrl.searchParams.set("path", key);
-
-  const presignResp = await fetch(presignUrl, {
-    headers: { Authorization: `Bearer ${forgeKey}` },
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        resource_type: "image",
+        public_id: publicId,
+        overwrite: false,
+        unique_filename: false,
+        allowed_formats: ["jpg", "jpeg", "png", "webp"],
+        tags: ["qrserve", "menu-image"],
+        context: { content_type: contentType },
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        if (!result?.secure_url || !result.public_id) {
+          reject(new Error("Cloudinary did not return an image URL."));
+          return;
+        }
+        resolve({ key: result.public_id, url: result.secure_url });
+      },
+    );
+    stream.end(bytes);
   });
-
-  if (!presignResp.ok) {
-    const msg = await presignResp.text().catch(() => presignResp.statusText);
-    throw new Error(`Storage presign failed (${presignResp.status}): ${msg}`);
-  }
-
-  const { url: s3Url } = (await presignResp.json()) as { url: string };
-  if (!s3Url) throw new Error("Forge returned empty presign URL");
-
-  // 2. PUT file directly to S3
-  const blob =
-    typeof data === "string"
-      ? new Blob([data], { type: contentType })
-      : new Blob([data as any], { type: contentType });
-
-  const uploadResp = await fetch(s3Url, {
-    method: "PUT",
-    headers: { "Content-Type": contentType },
-    body: blob,
-  });
-
-  if (!uploadResp.ok) {
-    throw new Error(`Storage upload to S3 failed (${uploadResp.status})`);
-  }
-
-  return { key, url: `/manus-storage/${key}` };
-}
-
-export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
-  const key = normalizeKey(relKey);
-  return { key, url: `/manus-storage/${key}` };
-}
-
-export async function storageGetSignedUrl(relKey: string): Promise<string> {
-  const { forgeUrl, forgeKey } = getForgeConfig();
-  const key = normalizeKey(relKey);
-
-  const getUrl = new URL("v1/storage/presign/get", forgeUrl + "/");
-  getUrl.searchParams.set("path", key);
-
-  const resp = await fetch(getUrl, {
-    headers: { Authorization: `Bearer ${forgeKey}` },
-  });
-
-  if (!resp.ok) {
-    const msg = await resp.text().catch(() => resp.statusText);
-    throw new Error(`Storage signed URL failed (${resp.status}): ${msg}`);
-  }
-
-  const { url } = (await resp.json()) as { url: string };
-  return url;
 }

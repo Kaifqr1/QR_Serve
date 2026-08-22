@@ -2,9 +2,9 @@
 
 ## Current readiness
 
-QRServe now builds a bundled Vercel Function at `api/index.js`, while local development retains the existing Node server. The Vercel build produces frontend assets in the root `public/` directory, and `vercel.json` sends API, storage-proxy, and single-page application routes to the appropriate target. This follows Vercel’s Express deployment model, where an exported Express application is deployed as a serverless function and static assets must be served from `public/**` rather than `express.static()`. [1]
+QRServe now builds a bundled Vercel Function at `api/index.js`, while local development retains the existing Node server. The Vercel build produces frontend assets in the root `public/` directory, and `vercel.json` sends API and single-page application routes to the appropriate target. This follows Vercel’s Express deployment model, where an exported Express application is deployed as a serverless function and static assets must be served from `public/**` rather than `express.static()`. [1]
 
-> **Important:** The current project is technically prepared for Vercel deployment, but it is **not production-ready on Vercel until its managed Manus storage and database dependencies are replaced or made externally accessible**. The `BUILT_IN_FORGE_*` credentials are only available inside the managed runtime and must not be copied to Vercel.
+> **Important:** Dish-image storage is implemented with Cloudinary’s authenticated server-side SDK. The last required step is adding the Cloudinary API environment variable to Vercel. The legacy `BUILT_IN_FORGE_*` credentials are not used for dish-image uploads and must not be copied to Vercel.
 
 ## Required Vercel environment variables
 
@@ -17,12 +17,13 @@ Configure the following values in **Production** and, where appropriate, **Previ
 | `FRONTEND_URL` | Yes | Final canonical site origin, for example `https://qrserve.vercel.app` or your custom domain. |
 | `API_URL` | Same-origin only | Set to the same final origin unless the API moves to a separate domain. |
 | `VITE_PUBLIC_SITE_URL` | Yes | Final origin with no trailing slash. The build injects it into canonical, Open Graph, Twitter, and JSON-LD URLs. |
+| `CLOUDINARY_URL` | Yes for dish-image uploads | Copy the **API Environment variable** from Cloudinary’s API Keys page. It must be configured as a server-side Vercel variable and must never use the `VITE_` prefix. |
 
 ## Required provider changes before a production release
 
 | Area | Current implementation | Required Vercel action |
 | --- | --- | --- |
-| Image storage | Managed Forge-backed `/manus-storage/*` proxy | Replace `server/storage.ts` with Vercel Blob, S3, Cloudflare R2, or Cloudinary and then remove the Forge storage proxy and `BUILT_IN_FORGE_*` dependency. |
+| Image storage | Authenticated Cloudinary server-side upload | Set `CLOUDINARY_URL` in Vercel for Production and Preview, then redeploy. QRServe validates JPG/PNG/WebP data and signatures, preserves the 5 MB maximum, and stores only Cloudinary’s public HTTPS URL in TiDB. |
 | Database | Managed runtime database variable | Provision an external database, allow Vercel connectivity, enable TLS, and apply migrations outside a request path. |
 | Authentication | QRServe email/password accounts stored in TiDB | Run `TIDB_AUTH_MIGRATION.sql` once against the external `qrserve` database before creating the first account. The former `VITE_APP_ID`, `OAUTH_SERVER_URL`, and `VITE_OAUTH_PORTAL_URL` values are no longer required. |
 | Rate limiting | In-memory middleware store | For global limits across multiple function instances, add a shared store such as Vercel KV or Upstash Redis before public launch. |
@@ -32,8 +33,8 @@ Configure the following values in **Production** and, where appropriate, **Previ
 
 1. Export the checkpoint or repository to GitHub, then import it into Vercel.
 2. Add the required environment variables. Remove the retired OAuth environment variables after confirming the new credential sign-in screen is live.
-3. Provision external database and image-storage providers, migrate the two managed integrations, and run `TIDB_AUTH_MIGRATION.sql` from a controlled administrative session.
-4. Create a preview deployment and verify sign-in, restaurant creation, menu image upload, public menu view, QR code scan, and logout.
+3. In Cloudinary’s **API Keys** page, copy the **API Environment variable**. In Vercel, add it as `CLOUDINARY_URL` for Production and Preview. Do not add it as a `VITE_*` variable and do not commit it to source control. [3]
+4. Redeploy and verify sign-in, restaurant creation, menu image upload, public menu view, QR code scan, and logout.
 5. Assign the final domain, set `VITE_PUBLIC_SITE_URL`, redeploy, and validate the canonical/OG URLs before promoting production.
 
 ## References
@@ -41,3 +42,5 @@ Configure the following values in **Production** and, where appropriate, **Previ
 [1] [Vercel, “Express on Vercel”](https://vercel.com/docs/frameworks/backend/express)
 
 [2] [Vercel, “Environment variables”](https://vercel.com/docs/environment-variables)
+
+[3] [Cloudinary, “Node.js SDK configuration”](https://cloudinary.com/documentation/node_integration)
