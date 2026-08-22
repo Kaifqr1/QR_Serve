@@ -2,7 +2,7 @@ import { and, asc, count, eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { analyticsEvents, menuCategories, menuItems, restaurants } from "../drizzle/schema";
+import { analyticsEvents, menuCategories, menuItems, restaurants, users } from "../drizzle/schema";
 import { categoryInput, categoryUpdateInput, imageUploadInput, menuItemInput, menuItemUpdateInput, planLimits, restaurantInput, restaurantUpdateInput } from "../shared/qrserve";
 import { getDb, getOwnedRestaurant } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
@@ -11,9 +11,12 @@ import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { storagePut } from "./storage";
 import { COOKIE_NAME } from "@shared/const";
 import { isImageSignatureValid } from "./security";
+import { createCredentialSession, hashPassword, LOCAL_SESSION_MAX_AGE_MS, normaliseEmail, publicUser, verifyPassword } from "./localAuth";
 
 const idInput = z.object({ id: z.number().int().positive() });
 const restaurantIdInput = z.object({ restaurantId: z.number().int().positive() });
+const credentialsInput = z.object({ email: z.string().trim().email().max(320), password: z.string().min(12).max(128) });
+const registrationInput = credentialsInput.extend({ name: z.string().trim().min(2).max(80) });
 
 async function database() {
   const db = await getDb();
@@ -32,10 +35,42 @@ function slugify(name: string) {
   return `${root || "restaurant"}-${nanoid(6).toLowerCase()}`;
 }
 
+function isDuplicateKeyError(error: unknown) {
+  return typeof error === "object" && error !== null && "code" in error && (error.code === "ER_DUP_ENTRY" || error.code === 1062);
+}
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query(opts => opts.ctx.user ? publicUser(opts.ctx.user) : null),
+    register: publicProcedure.input(registrationInput).mutation(async ({ ctx, input }) => {
+      const db = await database();
+      const email = normaliseEmail(input.email);
+      const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+      if (existing[0]) throw new TRPCError({ code: "CONFLICT", message: "Unable to create an account with these details." });
+      const passwordHash = await hashPassword(input.password);
+      let result;
+      try {
+        result = await db.insert(users).values({ openId: `local-${nanoid(20)}`, name: input.name, email, passwordHash, loginMethod: "password", role: "user", lastSignedIn: new Date() });
+      } catch (error) {
+        if (isDuplicateKeyError(error)) throw new TRPCError({ code: "CONFLICT", message: "Unable to create an account with these details." });
+        throw error;
+      }
+      const user = await db.select().from(users).where(eq(users.id, Number(result[0].insertId))).limit(1);
+      if (!user[0]) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Account creation could not be completed." });
+      const token = await createCredentialSession(user[0].id);
+      ctx.res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(ctx.req), maxAge: LOCAL_SESSION_MAX_AGE_MS });
+      return publicUser(user[0]);
+    }),
+    signIn: publicProcedure.input(credentialsInput).mutation(async ({ ctx, input }) => {
+      const db = await database();
+      const user = await db.select().from(users).where(eq(users.email, normaliseEmail(input.email))).limit(1);
+      if (!user[0]?.passwordHash || !(await verifyPassword(input.password, user[0].passwordHash))) throw new TRPCError({ code: "UNAUTHORIZED", message: "Incorrect email or password." });
+      await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, user[0].id));
+      const token = await createCredentialSession(user[0].id);
+      ctx.res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(ctx.req), maxAge: LOCAL_SESSION_MAX_AGE_MS });
+      return publicUser(user[0]);
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });

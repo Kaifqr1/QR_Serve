@@ -1,6 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { startLogin } from "@/const";
 import { scrollReveal } from "@/lib/scrollReveal";
 import { ArrowRight, Check, QrCode, ScanLine, Sparkles, UtensilsCrossed } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
@@ -18,7 +17,7 @@ export default function Home() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const reducedMotion = useReducedMotion();
-  const enterWorkspace = () => isAuthenticated ? setLocation("/app") : startLogin();
+  const enterWorkspace = () => setLocation(isAuthenticated ? "/app" : "/sign-in");
   const reveal = (delay = 0, offset = 24) => scrollReveal(Boolean(reducedMotion), delay, offset);
 
   return <div className="min-h-screen overflow-x-hidden bg-[#181716] text-[#f8f3ea]">

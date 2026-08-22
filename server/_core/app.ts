@@ -1,6 +1,5 @@
 import express from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
@@ -16,10 +15,10 @@ export function createQrServeApp() {
   configureSecurity(app);
   app.use(express.json({ limit: BODY_SIZE_LIMIT, strict: true }));
   app.use(express.urlencoded({ limit: BODY_SIZE_LIMIT, extended: false }));
-  app.use("/api/oauth/callback", authRateLimiter);
+  app.use("/api/trpc/auth.signIn", authRateLimiter);
+  app.use("/api/trpc/auth.register", authRateLimiter);
   app.use("/api/trpc", apiRateLimiter);
   registerStorageProxy(app);
-  registerOAuthRoutes(app);
   app.use("/api/trpc", createExpressMiddleware({ router: appRouter, createContext }));
   app.use(securityErrorHandler);
   return app;

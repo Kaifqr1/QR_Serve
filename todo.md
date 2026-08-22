@@ -37,4 +37,7 @@
 - [x] Fix the deployed landing-page interaction paths and add graceful user-facing behavior when production OAuth or API configuration is missing.
 - [ ] Verify the repaired interaction paths and document any Vercel environment steps that still require user configuration after the latest Vercel deployment.
 - [x] Fix the Vercel `ERR_MODULE_NOT_FOUND` serverless entrypoint packaging failure for `server/_core/app`.
-- [ ] Verify the deployed API function starts successfully after the new Git checkpoint is redeployed and resolve the OAuth redirect-domain restriction for the Vercel URL.
+- [ ] Verify the deployed API function starts successfully after the new Git checkpoint is redeployed, then validate the TiDB-backed email/password flow on the Vercel URL.
+- [x] Replace managed Manus OAuth with TiDB-backed email/password authentication and secure application sessions.
+- [x] Add registration and sign-in screens with strong input validation, password hashing, rate limiting, and safe session handling.
+- [ ] Provide and validate the TiDB authentication schema migration, then verify Vercel-compatible authentication flows.

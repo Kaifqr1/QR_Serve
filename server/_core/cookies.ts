@@ -8,7 +8,7 @@ export type RequestTransport = {
 export type SessionCookieOptions = {
   httpOnly: true;
   path: "/";
-  sameSite: "none";
+  sameSite: "lax";
   secure: boolean;
 };
 
@@ -31,7 +31,7 @@ export function getSessionCookieOptions(
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "none",
+    sameSite: "lax",
     secure: isSecureRequest(req),
   };
 }

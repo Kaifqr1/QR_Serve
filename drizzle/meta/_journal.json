@@ -8,6 +8,13 @@
       "when": 1787393355298,
       "tag": "0000_absent_maximus",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1787403967274,
+      "tag": "0001_skinny_loki",
+      "breakpoints": true
     }
   ]
 }

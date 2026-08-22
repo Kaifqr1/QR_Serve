@@ -2,7 +2,6 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
-import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
 import { BarChart3, LayoutDashboard, LogOut, PanelLeft, QrCode, Store, UtensilsCrossed } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
@@ -26,12 +25,13 @@ const MAX_WIDTH = 340;
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarWidth, setSidebarWidth] = useState(() => Number(localStorage.getItem(SIDEBAR_WIDTH_KEY)) || DEFAULT_WIDTH);
   const { loading, user } = useAuth();
+  const [, setLocation] = useLocation();
 
   useEffect(() => localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString()), [sidebarWidth]);
 
   if (loading) return <DashboardLayoutSkeleton />;
   if (!user) {
-    return <div className="min-h-screen bg-[#181716] px-5 text-[#f8f3ea] grid place-items-center"><div className="max-w-sm text-center"><p className="eyebrow mb-4">QRServe workspace</p><h1 className="font-display text-4xl">Sign in to continue</h1><p className="mt-4 text-sm leading-6 text-[#c9c1b5]">Your menus, publishing tools, and restaurant data are protected.</p><Button onClick={startLogin} className="mt-8 w-full rounded-full bg-[#ed5739] text-white hover:bg-[#d6472e]">Sign in securely</Button></div></div>;
+    return <div className="min-h-screen bg-[#181716] px-5 text-[#f8f3ea] grid place-items-center"><div className="max-w-sm text-center"><p className="eyebrow mb-4">QRServe workspace</p><h1 className="font-display text-4xl">Sign in to continue</h1><p className="mt-4 text-sm leading-6 text-[#c9c1b5]">Your menus, publishing tools, and restaurant data are protected.</p><Button onClick={() => setLocation("/sign-in")} className="mt-8 w-full rounded-full bg-[#ed5739] text-white hover:bg-[#d6472e]">Sign in securely</Button></div></div>;
   }
   return <SidebarProvider style={{ "--sidebar-width": `${sidebarWidth}px` } as CSSProperties}><DashboardLayoutContent setSidebarWidth={setSidebarWidth}>{children}</DashboardLayoutContent></SidebarProvider>;
 }
