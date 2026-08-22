@@ -1,4 +1,4 @@
-import { and, asc, count, eq } from "drizzle-orm";
+import { and, asc, count, eq, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -42,6 +42,18 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user ? publicUser(opts.ctx.user) : null),
+    storageStatus: publicProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return { status: "missing" as const };
+      try {
+        const [rows] = await db.execute(sql`SELECT DATABASE() AS databaseName`) as unknown as [Array<{ databaseName: string | null }>];
+        return { status: "connected" as const, databaseName: rows[0]?.databaseName ?? null };
+      } catch (error) {
+        const message = error instanceof Error ? error.message.toLowerCase() : "";
+        const reason = /unknown (column|table)|doesn't exist|no database selected/.test(message) ? "schema" : "connection";
+        return { status: "error" as const, reason };
+      }
+    }),
     signIn: publicProcedure.input(credentialsInput).mutation(async ({ ctx, input }) => {
       const db = await database();
       const user = await db.select().from(users).where(eq(users.email, normaliseEmail(input.email))).limit(1);

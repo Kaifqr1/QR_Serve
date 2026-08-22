@@ -49,3 +49,12 @@
 - [x] Fix the post-sign-in redirect loop and verify that the authenticated dashboard remains accessible after refresh.
 - [x] Browser-verify the preview sign-in flow reaches `/app` and remains authenticated after refreshing the dashboard.
 - [ ] Confirm the latest checkpoint is synchronized to Git and cross-check the Vercel deployment against the administrator sign-in flow.
+- [ ] Create the missing baseline QRServe schema in the external TiDB database, then apply and verify the credential migration.
+- [ ] Ensure the external TiDB baseline schema is executed as one selected script rather than as an individual trailing statement.
+- [ ] Bootstrap the administrator credentials in the migrated TiDB schema for production sign-in.
+- [ ] Add the missing external TiDB passwordHash column and retry the administrator bootstrap insertion.
+- [ ] Insert and verify the external TiDB administrator credential record after the passwordHash repair.
+- [ ] Verify the live Vercel administrator sign-in and dashboard session now that the external TiDB record exists.
+- [ ] Confirm Vercel's production DATABASE_URL targets the populated TiDB qrserve schema without exposing the connection string.
+- [ ] Validate the Vercel database connection through a secret-safe flow that does not require manual connection-string editing.
+- [ ] Verify the live Vercel administrator sign-in and dashboard refresh after the database-setting redeployment.

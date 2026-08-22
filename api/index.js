@@ -54,7 +54,7 @@ function registerStorageProxy(app) {
 }
 
 // server/routers.ts
-import { and as and2, asc, count, eq as eq2 } from "drizzle-orm";
+import { and as and2, asc, count, eq as eq2, sql } from "drizzle-orm";
 import { TRPCError as TRPCError3 } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { z as z3 } from "zod";
@@ -575,6 +575,18 @@ var appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user ? publicUser(opts.ctx.user) : null),
+    storageStatus: publicProcedure.query(async () => {
+      const db = await getDb();
+      if (!db) return { status: "missing" };
+      try {
+        const [rows] = await db.execute(sql`SELECT DATABASE() AS databaseName`);
+        return { status: "connected", databaseName: rows[0]?.databaseName ?? null };
+      } catch (error) {
+        const message = error instanceof Error ? error.message.toLowerCase() : "";
+        const reason = /unknown (column|table)|doesn't exist|no database selected/.test(message) ? "schema" : "connection";
+        return { status: "error", reason };
+      }
+    }),
     signIn: publicProcedure.input(credentialsInput).mutation(async ({ ctx, input }) => {
       const db = await database2();
       const user = await db.select().from(users).where(eq2(users.email, normaliseEmail(input.email))).limit(1);

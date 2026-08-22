@@ -55,6 +55,14 @@ describe("administrator-only authentication router", () => {
     expect(procedures).toHaveProperty("auth.signIn");
   });
 
+  it("reports the active database name without exposing a connection string", async () => {
+    const execute = vi.fn().mockResolvedValue([[{ databaseName: "qrserve" }], []]);
+    mocks.getDb.mockResolvedValue({ execute });
+    const { caller } = unauthenticatedCaller();
+
+    await expect(caller.auth.storageStatus()).resolves.toEqual({ status: "connected", databaseName: "qrserve" });
+  });
+
   it("rejects passwords shorter than twelve characters before database access", async () => {
     const { caller } = unauthenticatedCaller();
 

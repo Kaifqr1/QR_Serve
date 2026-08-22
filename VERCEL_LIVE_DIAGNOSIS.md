@@ -28,3 +28,7 @@ The serverless entrypoint is now bundled from `server/_core/vercelFunction.ts` i
 ## Superseded OAuth blocker
 
 The previous `invalid redirect_uri` failure was caused by the managed OAuth provider rejecting the Vercel domain. QRServe now uses its own TiDB-backed email/password accounts and signed httpOnly cookies, so no OAuth callback registration is required for this flow. Live verification still requires a fresh Vercel deployment and the TiDB authentication migration.
+
+## Current live database blocker
+
+On 2026-08-22, the ready production deployment at `https://qr-serve-three.vercel.app` served the current administrator-only sign-in UI from commit `5902e73`. The `POST /api/trpc/auth.signIn` request returned HTTP 500 after the external TiDB schema/bootstrap work. Vercel’s request log confirms that the bundled `/api/index` function executed, but it does not expose the nested database driver error. The immediate next check is to confirm the Vercel `DATABASE_URL` points to the same TiDB database where the tables and administrator row were created, including the `qrserve` database name and TLS parameters. Do not expose the connection string in chat.
