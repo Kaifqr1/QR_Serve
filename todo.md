@@ -74,4 +74,5 @@
 - [ ] Save the already password-complete TiDB value in Vercel and redeploy Production for final live validation.
 - [ ] Configure TiDB public-endpoint network access for Vercel so secure database-backed administrator sign-in can work without hard-coded credentials.
 - [ ] Classify the remaining secure Vercel-to-TiDB connection error now that TiDB public network access is confirmed open.
+- [ ] Extend the safe diagnostic to classify the nested TiDB driver error that is currently wrapped by the ORM.
 - [ ] Verify the live Vercel administrator sign-in and dashboard refresh after the database-setting redeployment.

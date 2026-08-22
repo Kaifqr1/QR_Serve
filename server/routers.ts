@@ -39,9 +39,17 @@ function isDuplicateKeyError(error: unknown) {
 }
 
 function classifyDatabaseConnectionError(error: unknown) {
-  const code = typeof error === "object" && error !== null && "code" in error ? String(error.code).toLowerCase() : "";
-  const message = error instanceof Error ? error.message.toLowerCase() : "";
-  const detail = `${code} ${message}`;
+  const seen = new Set<unknown>();
+  const details: string[] = [];
+  let current: unknown = error;
+  while (current && typeof current === "object" && !seen.has(current)) {
+    seen.add(current);
+    const record = current as { code?: unknown; message?: unknown; cause?: unknown };
+    if (record.code) details.push(String(record.code).toLowerCase());
+    if (typeof record.message === "string") details.push(record.message.toLowerCase());
+    current = record.cause;
+  }
+  const detail = details.join(" ");
   if (/unknown (column|table)|doesn't exist|no database selected/.test(detail)) return "schema" as const;
   if (/access denied|authentication|er_access_denied|password/.test(detail)) return "credentials" as const;
   if (/ssl|tls|certificate|handshake/.test(detail)) return "tls" as const;

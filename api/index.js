@@ -572,9 +572,17 @@ function slugify(name) {
   return `${root || "restaurant"}-${nanoid(6).toLowerCase()}`;
 }
 function classifyDatabaseConnectionError(error) {
-  const code = typeof error === "object" && error !== null && "code" in error ? String(error.code).toLowerCase() : "";
-  const message = error instanceof Error ? error.message.toLowerCase() : "";
-  const detail = `${code} ${message}`;
+  const seen = /* @__PURE__ */ new Set();
+  const details = [];
+  let current = error;
+  while (current && typeof current === "object" && !seen.has(current)) {
+    seen.add(current);
+    const record = current;
+    if (record.code) details.push(String(record.code).toLowerCase());
+    if (typeof record.message === "string") details.push(record.message.toLowerCase());
+    current = record.cause;
+  }
+  const detail = details.join(" ");
   if (/unknown (column|table)|doesn't exist|no database selected/.test(detail)) return "schema";
   if (/access denied|authentication|er_access_denied|password/.test(detail)) return "credentials";
   if (/ssl|tls|certificate|handshake/.test(detail)) return "tls";

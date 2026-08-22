@@ -64,7 +64,8 @@ describe("administrator-only authentication router", () => {
   });
 
   it("classifies credential failures without exposing the underlying error", async () => {
-    const execute = vi.fn().mockRejectedValue(Object.assign(new Error("Access denied for user"), { code: "ER_ACCESS_DENIED_ERROR" }));
+    const driverError = Object.assign(new Error("Access denied for user"), { code: "ER_ACCESS_DENIED_ERROR" });
+    const execute = vi.fn().mockRejectedValue(Object.assign(new Error("Failed query"), { cause: driverError }));
     mocks.getDb.mockResolvedValue({ execute });
     const { caller } = unauthenticatedCaller();
 
