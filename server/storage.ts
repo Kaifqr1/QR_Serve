@@ -1,11 +1,32 @@
-import { v2 as cloudinary } from "cloudinary";
-
 type CloudinaryCredentials = {
   cloud_name: string;
   api_key: string;
   api_secret: string;
   secure: true;
 };
+
+type CloudinarySdk = {
+  config: (credentials: CloudinaryCredentials) => void;
+  uploader: {
+    upload_stream: (options: Record<string, unknown>, callback: (error?: Error, result?: { secure_url?: string; public_id?: string }) => void) => { end: (bytes: Buffer) => void };
+  };
+};
+
+let cloudinarySdk: Promise<CloudinarySdk> | undefined;
+
+async function loadCloudinary(): Promise<CloudinarySdk> {
+  if (!cloudinarySdk) {
+    const inheritedUrl = process.env.CLOUDINARY_URL;
+    delete process.env.CLOUDINARY_URL;
+    cloudinarySdk = import("cloudinary")
+      .then(module => module.v2 as unknown as CloudinarySdk)
+      .finally(() => {
+        if (inheritedUrl === undefined) delete process.env.CLOUDINARY_URL;
+        else process.env.CLOUDINARY_URL = inheritedUrl;
+      });
+  }
+  return cloudinarySdk;
+}
 
 export class StorageConfigurationError extends Error {
   constructor() {
@@ -15,7 +36,7 @@ export class StorageConfigurationError extends Error {
 }
 
 function cloudinaryCredentials(): CloudinaryCredentials {
-  const configuredUrl = process.env.CLOUDINARY_URL?.trim();
+  const configuredUrl = process.env.CLOUDINARY_URL?.trim().replace(/^CLOUDINARY_URL\s*=\s*/i, "");
   if (configuredUrl) {
     try {
       const endpoint = new URL(configuredUrl);
@@ -56,6 +77,7 @@ export async function storagePut(
   contentType = "application/octet-stream",
 ): Promise<{ key: string; url: string }> {
   const publicId = createUniquePublicId(relativeKey);
+  const cloudinary = await loadCloudinary();
   cloudinary.config(cloudinaryCredentials());
   const bytes = typeof data === "string" ? Buffer.from(data) : Buffer.from(data);
 

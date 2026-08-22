@@ -87,5 +87,6 @@
 - [x] Diagnose the live dish-image upload failure in the QRServe menu builder.
 - [x] Replace the unavailable managed storage dependency with a secure Vercel-compatible image upload and delivery path.
 - [ ] Verify dish-image upload, persistence, and public-menu rendering on Vercel.
-- [ ] Connect Cloudinary production storage and add its server-side credentials for QRServe dish-image uploads.
+- [x] Connect Cloudinary production storage and add its server-side credentials for QRServe dish-image uploads.
 - [x] Make repeated dish-image uploads collision-safe when files share the same name.
+- [ ] Prevent Cloudinary environment auto-parsing from crashing live QRServe authentication, then re-verify the Vercel upload route.

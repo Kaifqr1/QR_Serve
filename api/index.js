@@ -381,7 +381,18 @@ var systemRouter = router({
 });
 
 // server/storage.ts
-import { v2 as cloudinary } from "cloudinary";
+var cloudinarySdk;
+async function loadCloudinary() {
+  if (!cloudinarySdk) {
+    const inheritedUrl = process.env.CLOUDINARY_URL;
+    delete process.env.CLOUDINARY_URL;
+    cloudinarySdk = import("cloudinary").then((module) => module.v2).finally(() => {
+      if (inheritedUrl === void 0) delete process.env.CLOUDINARY_URL;
+      else process.env.CLOUDINARY_URL = inheritedUrl;
+    });
+  }
+  return cloudinarySdk;
+}
 var StorageConfigurationError = class extends Error {
   constructor() {
     super("Cloudinary image storage is not configured.");
@@ -389,7 +400,7 @@ var StorageConfigurationError = class extends Error {
   }
 };
 function cloudinaryCredentials() {
-  const configuredUrl = process.env.CLOUDINARY_URL?.trim();
+  const configuredUrl = process.env.CLOUDINARY_URL?.trim().replace(/^CLOUDINARY_URL\s*=\s*/i, "");
   if (configuredUrl) {
     try {
       const endpoint = new URL(configuredUrl);
@@ -421,6 +432,7 @@ function createUniquePublicId(relativeKey) {
 }
 async function storagePut(relativeKey, data, contentType = "application/octet-stream") {
   const publicId = createUniquePublicId(relativeKey);
+  const cloudinary = await loadCloudinary();
   cloudinary.config(cloudinaryCredentials());
   const bytes = typeof data === "string" ? Buffer.from(data) : Buffer.from(data);
   return new Promise((resolve, reject) => {
