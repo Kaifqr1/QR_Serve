@@ -13,7 +13,7 @@ The deployed public auth request to `/api/trpc/auth.me` returns HTTP `500` with 
 
 ## Required next verification
 
-Deploy the checkpoint containing the local-auth migration. In the TiDB SQL Editor, run the two statements in `TIDB_AUTH_MIGRATION.sql` exactly once. Then confirm the deployed `/sign-in` page opens, create a new QRServe account, sign out, and sign back in. The public `/api/trpc/auth.me` endpoint should return HTTP `200` and `null` before sign-in rather than a function-invocation failure.
+Deploy the checkpoint containing the local-auth migration. In the TiDB SQL Editor, run the two statements in `TIDB_AUTH_MIGRATION.sql` exactly once. Then confirm the deployed `/sign-in` page opens. For a new workspace, create a QRServe account, sign out, and sign back in. For an existing pre-migration workspace, use **Recover a previous QRServe workspace** in the same browser that holds its signed previous session; this attaches email/password credentials to the existing account and preserves its menu data. The public `/api/trpc/auth.me` endpoint should return HTTP `200` and `null` before sign-in rather than a function-invocation failure.
 
 ## Function packaging reference
 

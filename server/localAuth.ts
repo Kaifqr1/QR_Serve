@@ -11,6 +11,7 @@ const PASSWORD_WORK_FACTOR = 12;
 
 type HeaderCarrier = { headers?: Record<string, string | string[] | undefined> };
 type CredentialSession = { uid: number; kind: "qrserve-password" };
+type LegacySession = { openId: string; appId: string };
 
 function sessionKey() {
   if (ENV.cookieSecret.length < 32) throw new Error("JWT_SECRET must be at least 32 characters in production.");
@@ -50,6 +51,19 @@ export async function getCredentialSessionUser(req: HeaderCarrier): Promise<User
     const { payload } = await jwtVerify(token, sessionKey(), { algorithms: ["HS256"] });
     if (payload.kind !== "qrserve-password" || typeof payload.uid !== "number" || !Number.isInteger(payload.uid)) return null;
     return (await db.getUserById(payload.uid)) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getLegacySessionOpenId(req: HeaderCarrier): Promise<string | null> {
+  const rawCookie = getHeader(req, "cookie");
+  const token = rawCookie ? parseCookieHeader(rawCookie)[COOKIE_NAME] : undefined;
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, sessionKey(), { algorithms: ["HS256"] });
+    const legacy = payload as LegacySession;
+    return typeof legacy.openId === "string" && legacy.openId.length > 0 && typeof legacy.appId === "string" && legacy.appId.length > 0 ? legacy.openId : null;
   } catch {
     return null;
   }

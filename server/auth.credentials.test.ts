@@ -14,10 +14,11 @@ import { ENV } from "./_core/env";
 
 type CookieCall = { name: string; value: string; options: Record<string, unknown> };
 
-function unauthenticatedCaller() {
+function unauthenticatedCaller(legacyOpenId: string | null = null) {
   const cookies: CookieCall[] = [];
   const ctx: TrpcContext = {
     user: null,
+    legacyOpenId,
     req: { protocol: "https", headers: {} } as TrpcContext["req"],
     res: {
       cookie: (name: string, value: string, options: Record<string, unknown>) => cookies.push({ name, value, options }),
@@ -97,5 +98,27 @@ describe("credential authentication router", () => {
     expect(cookies).toHaveLength(1);
     expect(cookies[0]?.name).toBe(COOKIE_NAME);
     expect(cookies[0]?.options).toMatchObject({ httpOnly: true, path: "/", sameSite: "lax", secure: true, maxAge: 14 * 24 * 60 * 60 * 1000 });
+  });
+
+  it("claims a legacy browser-verified account instead of creating a duplicate workspace", async () => {
+    const noMatchingEmail = vi.fn().mockResolvedValue([]);
+    const legacyAccount = { ...existingUser, openId: "legacy-owner", name: null, email: null, passwordHash: null, loginMethod: null };
+    const legacyLimit = vi.fn().mockResolvedValue([legacyAccount]);
+    const select = vi.fn()
+      .mockReturnValueOnce({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: noMatchingEmail })) })) })
+      .mockReturnValueOnce({ from: vi.fn(() => ({ where: vi.fn(() => ({ limit: legacyLimit })) })) });
+    const where = vi.fn().mockResolvedValue(undefined);
+    const set = vi.fn(() => ({ where }));
+    const update = vi.fn(() => ({ set }));
+    mocks.getDb.mockResolvedValue({ select, update });
+    const { caller, cookies } = unauthenticatedCaller("legacy-owner");
+
+    const user = await caller.auth.claimLegacy({ name: "Restaurant Owner", email: "OWNER@EXAMPLE.COM", password: "a-strong-password" });
+
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(set).toHaveBeenCalledWith(expect.objectContaining({ email: "owner@example.com", loginMethod: "password" }));
+    expect(user).toMatchObject({ id: 7, email: "owner@example.com", name: "Restaurant Owner" });
+    expect(user).not.toHaveProperty("passwordHash");
+    expect(cookies).toHaveLength(1);
   });
 });

@@ -1,5 +1,8 @@
+import { SignJWT } from "jose";
 import { describe, expect, it } from "vitest";
-import { getCredentialSessionUser, hashPassword, normaliseEmail, publicUser, verifyPassword } from "./localAuth";
+import { COOKIE_NAME } from "../shared/const";
+import { ENV } from "./_core/env";
+import { getCredentialSessionUser, getLegacySessionOpenId, hashPassword, normaliseEmail, publicUser, verifyPassword } from "./localAuth";
 
 describe("local credential authentication", () => {
   it("normalises email addresses before identity lookup", () => {
@@ -15,6 +18,17 @@ describe("local credential authentication", () => {
 
   it("returns no account when the credential cookie is absent", async () => {
     await expect(getCredentialSessionUser({ headers: {} })).resolves.toBeNull();
+  });
+
+  it("accepts only a signed legacy browser session with a complete legacy identity", async () => {
+    ENV.cookieSecret = "test-session-secret-with-at-least-32-characters";
+    const token = await new SignJWT({ openId: "legacy-owner", appId: "old-app" })
+      .setProtectedHeader({ alg: "HS256", typ: "JWT" })
+      .setExpirationTime("1h")
+      .sign(new TextEncoder().encode(ENV.cookieSecret));
+
+    await expect(getLegacySessionOpenId({ headers: { cookie: `${COOKIE_NAME}=${token}` } })).resolves.toBe("legacy-owner");
+    await expect(getLegacySessionOpenId({ headers: { cookie: `${COOKIE_NAME}=not-a-token` } })).resolves.toBeNull();
   });
 
   it("never returns a password hash in the public user response", () => {

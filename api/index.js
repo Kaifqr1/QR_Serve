@@ -535,6 +535,18 @@ async function getCredentialSessionUser(req) {
     return null;
   }
 }
+async function getLegacySessionOpenId(req) {
+  const rawCookie = getHeader(req, "cookie");
+  const token = rawCookie ? parseCookieHeader(rawCookie)[COOKIE_NAME] : void 0;
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, sessionKey(), { algorithms: ["HS256"] });
+    const legacy = payload;
+    return typeof legacy.openId === "string" && legacy.openId.length > 0 && typeof legacy.appId === "string" && legacy.appId.length > 0 ? legacy.openId : null;
+  } catch {
+    return null;
+  }
+}
 function publicUser(user) {
   const { passwordHash: _passwordHash, ...safeUser } = user;
   return safeUser;
@@ -584,6 +596,21 @@ var appRouter = router({
       const token = await createCredentialSession(user[0].id);
       ctx.res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(ctx.req), maxAge: LOCAL_SESSION_MAX_AGE_MS });
       return publicUser(user[0]);
+    }),
+    claimLegacy: publicProcedure.input(registrationInput).mutation(async ({ ctx, input }) => {
+      if (ctx.user || !ctx.legacyOpenId) throw new TRPCError3({ code: "FORBIDDEN", message: "This browser does not have an eligible previous QRServe account to recover." });
+      const db = await database2();
+      const email = normaliseEmail(input.email);
+      const existing = await db.select({ id: users.id }).from(users).where(eq2(users.email, email)).limit(1);
+      if (existing[0]) throw new TRPCError3({ code: "CONFLICT", message: "Unable to use these account details." });
+      const legacy = await db.select().from(users).where(eq2(users.openId, ctx.legacyOpenId)).limit(1);
+      if (!legacy[0] || legacy[0].email || legacy[0].passwordHash) throw new TRPCError3({ code: "FORBIDDEN", message: "This previous QRServe account cannot be recovered from this browser." });
+      const passwordHash = await hashPassword(input.password);
+      const recoveredUser = { ...legacy[0], name: input.name, email, passwordHash, loginMethod: "password", lastSignedIn: /* @__PURE__ */ new Date() };
+      await db.update(users).set({ name: recoveredUser.name, email: recoveredUser.email, passwordHash: recoveredUser.passwordHash, loginMethod: recoveredUser.loginMethod, lastSignedIn: recoveredUser.lastSignedIn }).where(eq2(users.id, recoveredUser.id));
+      const token = await createCredentialSession(recoveredUser.id);
+      ctx.res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(ctx.req), maxAge: LOCAL_SESSION_MAX_AGE_MS });
+      return publicUser(recoveredUser);
     }),
     signIn: publicProcedure.input(credentialsInput).mutation(async ({ ctx, input }) => {
       const db = await database2();
@@ -757,15 +784,19 @@ var appRouter = router({
 // server/_core/context.ts
 async function createContext(opts) {
   let user = null;
+  let legacyOpenId = null;
   try {
     user = await getCredentialSessionUser(opts.req);
+    if (!user) legacyOpenId = await getLegacySessionOpenId(opts.req);
   } catch (error) {
     user = null;
+    legacyOpenId = null;
   }
   return {
     req: opts.req,
     res: opts.res,
-    user
+    user,
+    legacyOpenId
   };
 }
 

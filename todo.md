@@ -41,3 +41,4 @@
 - [x] Replace managed Manus OAuth with TiDB-backed email/password authentication and secure application sessions.
 - [x] Add registration and sign-in screens with strong input validation, password hashing, rate limiting, and safe session handling.
 - [ ] Provide and validate the TiDB authentication schema migration, then verify Vercel-compatible authentication flows.
+- [x] Fix the sign-in experience for legacy OAuth-era accounts that have no email address or password hash, then verify the migration guidance and credential flow.

@@ -62,6 +62,21 @@ export const appRouter = router({
       ctx.res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(ctx.req), maxAge: LOCAL_SESSION_MAX_AGE_MS });
       return publicUser(user[0]);
     }),
+    claimLegacy: publicProcedure.input(registrationInput).mutation(async ({ ctx, input }) => {
+      if (ctx.user || !ctx.legacyOpenId) throw new TRPCError({ code: "FORBIDDEN", message: "This browser does not have an eligible previous QRServe account to recover." });
+      const db = await database();
+      const email = normaliseEmail(input.email);
+      const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+      if (existing[0]) throw new TRPCError({ code: "CONFLICT", message: "Unable to use these account details." });
+      const legacy = await db.select().from(users).where(eq(users.openId, ctx.legacyOpenId)).limit(1);
+      if (!legacy[0] || legacy[0].email || legacy[0].passwordHash) throw new TRPCError({ code: "FORBIDDEN", message: "This previous QRServe account cannot be recovered from this browser." });
+      const passwordHash = await hashPassword(input.password);
+      const recoveredUser = { ...legacy[0], name: input.name, email, passwordHash, loginMethod: "password", lastSignedIn: new Date() };
+      await db.update(users).set({ name: recoveredUser.name, email: recoveredUser.email, passwordHash: recoveredUser.passwordHash, loginMethod: recoveredUser.loginMethod, lastSignedIn: recoveredUser.lastSignedIn }).where(eq(users.id, recoveredUser.id));
+      const token = await createCredentialSession(recoveredUser.id);
+      ctx.res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(ctx.req), maxAge: LOCAL_SESSION_MAX_AGE_MS });
+      return publicUser(recoveredUser);
+    }),
     signIn: publicProcedure.input(credentialsInput).mutation(async ({ ctx, input }) => {
       const db = await database();
       const user = await db.select().from(users).where(eq(users.email, normaliseEmail(input.email))).limit(1);
