@@ -15,5 +15,15 @@
 
 @layer base { * { @apply border-border outline-ring/50; } html { scroll-behavior: smooth; } body { @apply bg-background text-foreground font-sans; } button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [type="button"]:not(:disabled), [type="submit"]:not(:disabled), a[href], select:not(:disabled), input[type="checkbox"]:not(:disabled), input[type="radio"]:not(:disabled) { @apply cursor-pointer; } }
 @layer components { .font-display { font-family: var(--font-display); } .eyebrow { @apply inline-flex items-center rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em]; } .label { @apply mb-1.5 block text-xs font-bold uppercase tracking-[0.11em] text-[#6e6256]; } .field { @apply border-[#d7cfc3] bg-transparent focus-visible:border-[#201d19] focus-visible:ring-[#201d19]/15; } }
-@media print { body { background: white !important; } body * { visibility: hidden; } .qr-print-card, .qr-print-card * { visibility: visible; } .qr-print-card { position: absolute; left: 0; top: 0; width: 100%; border: 0 !important; box-shadow: none !important; } }
+@media print {
+  @page { margin: 10mm; size: auto; }
+  body { background: white !important; }
+  body * { visibility: hidden; }
+  .qr-print-card, .qr-print-card * { visibility: visible; }
+  .qr-print-card { position: absolute; left: 50%; top: 0; width: 105mm; min-height: 148mm; transform: translateX(-50%); border: 0 !important; box-shadow: none !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .qr-print-card .qr-code-frame { box-shadow: none !important; }
+}
+
+.qr-print-card { background: var(--qr-paper); color: var(--qr-ink); isolation: isolate; }
+.qr-print-flourish { z-index: -1; background: var(--qr-flourish); }
 @media (prefers-reduced-motion: no-preference) { a, button, input, article { transition-duration: 180ms; transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1); } button:active { transform: scale(0.97); } }

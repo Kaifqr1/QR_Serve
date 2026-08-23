@@ -91,3 +91,8 @@
 - [x] Make repeated dish-image uploads collision-safe when files share the same name.
 - [x] Prevent Cloudinary environment auto-parsing from crashing live QRServe authentication, then re-verify the Vercel upload route.
 - [x] Diagnose and correct the Cloudinary rejection returned by the live menu image-upload mutation.
+- [x] Audit the current QR Studio implementation and define a print-safe branded-card design system.
+- [x] Build selectable restaurant-branded QR print-card layouts with configurable visual styling and a reliable QR quiet zone.
+- [ ] Verify desktop/mobile preview, print behavior, QR readability, and automated checks for the branded card designer.
+- [ ] Confirm focused QR card preset and restaurant-mark tests remain green after the visual implementation.
+- [ ] Browser-verify the branded QR card preview and preset switching before saving the upgrade.
