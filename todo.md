@@ -134,7 +134,7 @@
 - [x] Preserve administrator control and tenant isolation while allowing approved venue owners to update only their own restaurants and menus.
 - [x] Add focused registration-domain and owner-permission tests, then verify the approved venue-owner journey in the browser.
 - [x] Add automated coverage that a standard venue owner cannot read or mutate another owner’s restaurant or menu routes.
-- [ ] Record key venue-owner lifecycle and menu-management activities in an owner-attributed audit trail.
-- [ ] Add an administrator-only activity monitoring section for venue-owner accounts, restaurants, and menu changes.
-- [ ] Add access-control and activity-recording tests, then verify monitoring is visible only to the administrator.
+- [x] Record key venue-owner lifecycle and menu-management activities in an owner-attributed audit trail.
+- [x] Add an administrator-only activity monitoring section for venue-owner accounts, restaurants, and menu changes.
+- [x] Add access-control and activity-recording tests, then verify monitoring is visible only to the administrator.
 - [x] Browser-verify an approved venue owner can register, receive a session, reach the private workspace, and manage only their own restaurant.
