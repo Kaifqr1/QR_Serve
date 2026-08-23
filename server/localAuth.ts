@@ -7,16 +7,25 @@ import * as db from "./db";
 import { ENV } from "./_core/env";
 
 export const LOCAL_SESSION_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+export const VENUE_OWNER_EMAIL_DOMAINS = [
+  "rastaurant.com",
+  "cafe.com",
+] as const;
 const PASSWORD_WORK_FACTOR = 12;
-const DEVELOPMENT_SESSION_SECRET = "qrserve-development-session-secret-not-for-production";
+const DEVELOPMENT_SESSION_SECRET =
+  "qrserve-development-session-secret-not-for-production";
 
-type HeaderCarrier = { headers?: Record<string, string | string[] | undefined> };
+type HeaderCarrier = {
+  headers?: Record<string, string | string[] | undefined>;
+};
 type CredentialSession = { uid: number; kind: "qrserve-password" };
 type LegacySession = { openId: string; appId: string };
 
 function sessionKey() {
-  if (ENV.cookieSecret.length >= 32) return new TextEncoder().encode(ENV.cookieSecret);
-  if (ENV.isProduction) throw new Error("JWT_SECRET must be at least 32 characters in production.");
+  if (ENV.cookieSecret.length >= 32)
+    return new TextEncoder().encode(ENV.cookieSecret);
+  if (ENV.isProduction)
+    throw new Error("JWT_SECRET must be at least 32 characters in production.");
   return new TextEncoder().encode(DEVELOPMENT_SESSION_SECRET);
 }
 
@@ -29,6 +38,13 @@ export function normaliseEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+export function isAllowedVenueOwnerEmail(email: string) {
+  const normalised = normaliseEmail(email);
+  return VENUE_OWNER_EMAIL_DOMAINS.some(domain =>
+    normalised.endsWith(`@${domain}`)
+  );
+}
+
 export async function hashPassword(password: string) {
   return hash(password, PASSWORD_WORK_FACTOR);
 }
@@ -38,34 +54,61 @@ export async function verifyPassword(password: string, passwordHash: string) {
 }
 
 export async function createCredentialSession(userId: number) {
-  return new SignJWT({ uid: userId, kind: "qrserve-password" satisfies CredentialSession["kind"] })
+  return new SignJWT({
+    uid: userId,
+    kind: "qrserve-password" satisfies CredentialSession["kind"],
+  })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setIssuedAt()
-    .setExpirationTime(Math.floor((Date.now() + LOCAL_SESSION_MAX_AGE_MS) / 1000))
+    .setExpirationTime(
+      Math.floor((Date.now() + LOCAL_SESSION_MAX_AGE_MS) / 1000)
+    )
     .sign(sessionKey());
 }
 
-export async function getCredentialSessionUser(req: HeaderCarrier): Promise<User | null> {
+export async function getCredentialSessionUser(
+  req: HeaderCarrier
+): Promise<User | null> {
   const rawCookie = getHeader(req, "cookie");
-  const token = rawCookie ? parseCookieHeader(rawCookie)[COOKIE_NAME] : undefined;
+  const token = rawCookie
+    ? parseCookieHeader(rawCookie)[COOKIE_NAME]
+    : undefined;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, sessionKey(), { algorithms: ["HS256"] });
-    if (payload.kind !== "qrserve-password" || typeof payload.uid !== "number" || !Number.isInteger(payload.uid)) return null;
+    const { payload } = await jwtVerify(token, sessionKey(), {
+      algorithms: ["HS256"],
+    });
+    if (
+      payload.kind !== "qrserve-password" ||
+      typeof payload.uid !== "number" ||
+      !Number.isInteger(payload.uid)
+    )
+      return null;
     return (await db.getUserById(payload.uid)) ?? null;
   } catch {
     return null;
   }
 }
 
-export async function getLegacySessionOpenId(req: HeaderCarrier): Promise<string | null> {
+export async function getLegacySessionOpenId(
+  req: HeaderCarrier
+): Promise<string | null> {
   const rawCookie = getHeader(req, "cookie");
-  const token = rawCookie ? parseCookieHeader(rawCookie)[COOKIE_NAME] : undefined;
+  const token = rawCookie
+    ? parseCookieHeader(rawCookie)[COOKIE_NAME]
+    : undefined;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, sessionKey(), { algorithms: ["HS256"] });
+    const { payload } = await jwtVerify(token, sessionKey(), {
+      algorithms: ["HS256"],
+    });
     const legacy = payload as LegacySession;
-    return typeof legacy.openId === "string" && legacy.openId.length > 0 && typeof legacy.appId === "string" && legacy.appId.length > 0 ? legacy.openId : null;
+    return typeof legacy.openId === "string" &&
+      legacy.openId.length > 0 &&
+      typeof legacy.appId === "string" &&
+      legacy.appId.length > 0
+      ? legacy.openId
+      : null;
   } catch {
     return null;
   }

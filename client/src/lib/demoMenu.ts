@@ -26,9 +26,9 @@ export type PublicMenuData = {
 };
 
 const menuImage = {
-  paneer: "/manus-storage/qrserve-menu-paneer_b1f548a1.jpg",
-  grill: "/manus-storage/qrserve-menu-tandoori_782fd2d0.jpg",
-  biryani: "/manus-storage/qrserve-menu-biryani_8df97ed3.jpg",
+  paneer: "/manus-storage/marigold-paneer_7a461916.jpg",
+  curry: "/manus-storage/marigold-curry_d631db38.jpg",
+  dessert: "/manus-storage/marigold-dessert_7903ac65.jpg",
 } as const;
 
 /**
@@ -56,7 +56,7 @@ export const demoMenuData: PublicMenuData = {
           name: "Crisp chilli paneer",
           description: "Sesame, scallion and a slow-building chilli glaze.",
           price: 320,
-          imageUrl: menuImage.paneer,
+          imageUrl: menuImage.curry,
         },
         {
           id: 90102,
@@ -64,7 +64,7 @@ export const demoMenuData: PublicMenuData = {
           name: "Curried cauliflower croquettes",
           description: "Golden crust, pea chutney and toasted cumin.",
           price: 290,
-          imageUrl: menuImage.paneer,
+          imageUrl: menuImage.curry,
         },
       ],
     },
@@ -79,7 +79,7 @@ export const demoMenuData: PublicMenuData = {
           name: "Malai paneer tikka",
           description: "Cashew cream, fenugreek and smoked tomato relish.",
           price: 410,
-          imageUrl: menuImage.grill,
+          imageUrl: menuImage.paneer,
         },
         {
           id: 90202,
@@ -87,7 +87,7 @@ export const demoMenuData: PublicMenuData = {
           name: "Charred chicken tikka",
           description: "Yoghurt marinade, kashmiri chilli and pickled onion.",
           price: 460,
-          imageUrl: menuImage.grill,
+          imageUrl: menuImage.paneer,
         },
       ],
     },
@@ -102,7 +102,7 @@ export const demoMenuData: PublicMenuData = {
           name: "Butter chicken with kulcha",
           description: "Tandoor chicken, silky tomato makhani and warm bread.",
           price: 520,
-          imageUrl: menuImage.grill,
+          imageUrl: menuImage.curry,
         },
         {
           id: 90302,
@@ -110,7 +110,7 @@ export const demoMenuData: PublicMenuData = {
           name: "Black dal makhani",
           description: "Overnight lentils, cultured butter and ginger.",
           price: 360,
-          imageUrl: menuImage.biryani,
+          imageUrl: menuImage.curry,
         },
         {
           id: 90303,
@@ -118,7 +118,7 @@ export const demoMenuData: PublicMenuData = {
           name: "Masala lemon rice",
           description: "Turmeric rice, curry leaf, peanuts and fresh lemon.",
           price: 250,
-          imageUrl: menuImage.biryani,
+          imageUrl: menuImage.paneer,
         },
       ],
     },
@@ -133,7 +133,7 @@ export const demoMenuData: PublicMenuData = {
           name: "Saffron milk cake",
           description: "Tres leches sponge, pistachio and rose petal.",
           price: 250,
-          imageUrl: menuImage.paneer,
+          imageUrl: menuImage.dessert,
         },
         {
           id: 90402,
@@ -141,7 +141,7 @@ export const demoMenuData: PublicMenuData = {
           name: "Cardamom kulfi",
           description: "Slow-set milk, almond praline and a pinch of salt.",
           price: 220,
-          imageUrl: menuImage.paneer,
+          imageUrl: menuImage.dessert,
         },
       ],
     },

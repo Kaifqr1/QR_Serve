@@ -129,3 +129,8 @@
 - [x] Add focused regression coverage and verify the animated customer menu and demo showcase on desktop, mobile, and reduced-motion settings.
 - [x] Prove the guest-menu pages render without motion props when reduced motion is enabled, and record that UI-level verification.
 - [ ] Deploy and verify the shareable demo restaurant at `https://qr-serve-three.vercel.app/`.
+- [ ] Replace the demo’s preview-only food image paths with production-safe assets and verify them on the public QRServe domain.
+- [x] Allow self-service venue-owner registration and sign-in only for the exact `@rastaurant.com` and `@cafe.com` email domains.
+- [x] Preserve administrator control and tenant isolation while allowing approved venue owners to update only their own restaurants and menus.
+- [ ] Add focused registration-domain and owner-permission tests, then verify the approved venue-owner journey in the browser.
+- [ ] Browser-verify an approved venue owner can register, receive a session, reach the private workspace, and manage only their own restaurant.
