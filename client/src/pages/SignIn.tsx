@@ -36,19 +36,19 @@ export default function SignIn() {
       <aside className="relative hidden overflow-hidden border-r border-white/10 p-10 lg:flex lg:flex-col lg:justify-between">
         <div>
           <button onClick={() => setLocation("/")} className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#ed5739] text-sm font-bold">Q</span><span className="font-display text-2xl">QRServe</span></button>
-          <p className="eyebrow mt-20 border-[#554c43] text-[#d8ccbb]">Independent restaurant tools</p>
-          <h1 className="mt-5 max-w-md font-display text-6xl leading-[0.94] tracking-[-0.05em]">Your menu,<br /><em className="text-[#ed5739]">in service.</em></h1>
-          <p className="mt-6 max-w-sm leading-7 text-[#c9c1b5]">A focused workspace for menus that stay current from the kitchen to every table.</p>
+          <p className="eyebrow mt-20 border-[#554c43] text-[#d8ccbb]">Local restaurant menu service</p>
+          <h1 className="mt-5 max-w-md font-display text-6xl leading-[0.94] tracking-[-0.05em]">Your client menus,<br /><em className="text-[#ed5739]">ready for service.</em></h1>
+          <p className="mt-6 max-w-sm leading-7 text-[#c9c1b5]">A private service desk for the local venues whose menus and table cards you manage.</p>
         </div>
-        <p className="text-sm text-[#9f9486]">Private account access for the QRServe administrator.</p>
+        <p className="text-sm text-[#9f9486]">Private access for the QRServe service operator.</p>
       </aside>
       <main className="grid place-items-center px-5 py-10 sm:px-8">
         <div className="w-full max-w-md">
           <button onClick={() => setLocation("/")} className="mb-10 inline-flex items-center gap-2 text-sm text-[#aa9f91] transition hover:text-white lg:hidden"><ArrowLeft className="h-4 w-4" />Back to QRServe</button>
           <div className="rounded-[2rem] border border-white/10 bg-[#211f1c] p-7 shadow-[0_24px_80px_rgba(0,0,0,0.25)] sm:p-10">
-            <div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#ed5739]"><LockKeyhole className="h-5 w-5" /></span><p className="eyebrow border-[#554c43] text-[#d8ccbb]">QRServe administrator</p></div>
+            <div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#ed5739]"><LockKeyhole className="h-5 w-5" /></span><p className="eyebrow border-[#554c43] text-[#d8ccbb]">QRServe service operator</p></div>
             <h1 className="mt-7 font-display text-4xl tracking-[-0.04em]">Welcome back.</h1>
-            <p className="mt-3 text-sm leading-6 text-[#bdb3a6]">Sign in to manage your restaurant menus and QR destinations.</p>
+            <p className="mt-3 text-sm leading-6 text-[#bdb3a6]">Sign in to prepare client menus, update venue details, and print table cards.</p>
             <form onSubmit={submit} className="mt-8 space-y-5">
               <div><label className="label text-[#d8ccbb]" htmlFor="auth-email">Email address</label><div className="relative"><Mail className="absolute left-3 top-3 h-4 w-4 text-[#978b7d]" /><Input id="auth-email" type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} required maxLength={320} className="field h-10 border-[#554c43] bg-white/5 pl-10 text-white placeholder:text-[#897e70]" placeholder="admin@example.com" /></div></div>
               <div><label className="label text-[#d8ccbb]" htmlFor="auth-password">Password</label><Input id="auth-password" type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} required minLength={12} maxLength={128} className="field h-10 border-[#554c43] bg-white/5 text-white placeholder:text-[#897e70]" placeholder="Your password" /><p className="mt-2 text-xs text-[#938779]">Use the administrator credentials configured for QRServe.</p></div>

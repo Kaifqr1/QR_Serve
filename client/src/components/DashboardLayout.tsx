@@ -10,11 +10,11 @@ import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Overview", path: "/app" },
-  { icon: Store, label: "Restaurants", path: "/app/restaurants" },
-  { icon: UtensilsCrossed, label: "Menu builder", path: "/app/restaurants" },
-  { icon: QrCode, label: "QR studio", path: "/app/restaurants" },
-  { icon: BarChart3, label: "Analytics", path: "/app" },
+  { icon: LayoutDashboard, label: "Service desk", path: "/app" },
+  { icon: Store, label: "Client venues", path: "/app/restaurants" },
+  { icon: UtensilsCrossed, label: "Menu work", path: "/app/restaurants" },
+  { icon: QrCode, label: "Table cards", path: "/app/restaurants" },
+  { icon: BarChart3, label: "Service insights", path: "/app" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "qrserve-sidebar-width";
@@ -26,13 +26,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [sidebarWidth, setSidebarWidth] = useState(() => Number(localStorage.getItem(SIDEBAR_WIDTH_KEY)) || DEFAULT_WIDTH);
   const { loading, user } = useAuth();
   const [, setLocation] = useLocation();
-
   useEffect(() => localStorage.setItem(SIDEBAR_WIDTH_KEY, sidebarWidth.toString()), [sidebarWidth]);
-
   if (loading) return <DashboardLayoutSkeleton />;
-  if (!user) {
-    return <div className="min-h-screen bg-[#181716] px-5 text-[#f8f3ea] grid place-items-center"><div className="max-w-sm text-center"><p className="eyebrow mb-4">QRServe workspace</p><h1 className="font-display text-4xl">Sign in to continue</h1><p className="mt-4 text-sm leading-6 text-[#c9c1b5]">Your menus, publishing tools, and restaurant data are protected.</p><Button onClick={() => setLocation("/sign-in")} className="mt-8 w-full rounded-full bg-[#ed5739] text-white hover:bg-[#d6472e]">Sign in securely</Button></div></div>;
-  }
+  if (!user) return <div className="grid min-h-screen place-items-center bg-[#181716] px-5 text-[#f8f3ea]"><div className="max-w-sm text-center"><p className="eyebrow mb-4">QRServe service desk</p><h1 className="font-display text-4xl">Operator access only</h1><p className="mt-4 text-sm leading-6 text-[#c9c1b5]">Client venues, menu work, and table-card tools are protected.</p><Button onClick={() => setLocation("/sign-in")} className="mt-8 w-full rounded-full bg-[#ed5739] text-white hover:bg-[#d6472e]">Operator sign in</Button></div></div>;
   return <SidebarProvider style={{ "--sidebar-width": `${sidebarWidth}px` } as CSSProperties}><DashboardLayoutContent setSidebarWidth={setSidebarWidth}>{children}</DashboardLayoutContent></SidebarProvider>;
 }
 
@@ -45,22 +41,6 @@ function DashboardLayoutContent({ children, setSidebarWidth }: { children: React
   const isCollapsed = state === "collapsed";
   const isMobile = useIsMobile();
   const activeMenuItem = menuItems.find(item => item.path === location) ?? (location.startsWith("/app/menu") ? menuItems[2] : location.startsWith("/app/qr") ? menuItems[3] : menuItems[0]);
-
-  useEffect(() => {
-    const move = (event: MouseEvent) => {
-      if (!isResizing) return;
-      const left = sidebarRef.current?.getBoundingClientRect().left ?? 0;
-      const width = event.clientX - left;
-      if (width >= MIN_WIDTH && width <= MAX_WIDTH) setSidebarWidth(width);
-    };
-    const end = () => setIsResizing(false);
-    if (isResizing) { document.addEventListener("mousemove", move); document.addEventListener("mouseup", end); document.body.style.cursor = "col-resize"; }
-    return () => { document.removeEventListener("mousemove", move); document.removeEventListener("mouseup", end); document.body.style.cursor = ""; };
-  }, [isResizing, setSidebarWidth]);
-
-  return <><div className="relative" ref={sidebarRef}><Sidebar collapsible="icon" className="border-r border-[#322f2b] bg-[#1d1b19] text-[#f5efe6]" disableTransition={isResizing}>
-    <SidebarHeader className="h-20 justify-center px-3"><div className="flex items-center gap-3"><button onClick={toggleSidebar} aria-label="Toggle navigation" className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[#c9c1b5] transition hover:bg-white/8 hover:text-white"><PanelLeft className="h-4 w-4" /></button>{!isCollapsed && <button onClick={() => setLocation("/app")} className="text-left"><span className="block font-display text-xl leading-none tracking-tight">QRServe</span><span className="mt-1 block text-[10px] uppercase tracking-[0.22em] text-[#b6a993]">menu systems</span></button>}</div></SidebarHeader>
-    <SidebarContent className="px-3 pt-4"><SidebarMenu className="gap-1">{menuItems.map(item => <SidebarMenuItem key={item.label}><SidebarMenuButton isActive={location === item.path || (item.label === "Menu builder" && location.startsWith("/app/menu")) || (item.label === "QR studio" && location.startsWith("/app/qr"))} onClick={() => setLocation(item.path)} tooltip={item.label} className="h-11 rounded-xl text-[#c9c1b5] hover:bg-white/8 hover:text-white data-[active=true]:bg-[#f4ede3] data-[active=true]:text-[#201d19]"><item.icon className="h-4 w-4" /><span>{item.label}</span></SidebarMenuButton></SidebarMenuItem>)}</SidebarMenu></SidebarContent>
-    <SidebarFooter className="p-3"><DropdownMenu><DropdownMenuTrigger asChild><button className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-white/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ed5739]"><Avatar className="h-9 w-9 border-0 bg-[#ed5739]"><AvatarFallback className="bg-[#ed5739] text-sm font-semibold text-white">{user?.name?.charAt(0).toUpperCase() ?? "U"}</AvatarFallback></Avatar><div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden"><p className="truncate text-sm font-medium text-[#f5efe6]">{user?.name || "Restaurant owner"}</p><p className="mt-0.5 truncate text-xs text-[#a79e91]">{user?.email || "Signed in"}</p></div></button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={logout} className="text-destructive"><LogOut className="mr-2 h-4 w-4" />Sign out</DropdownMenuItem></DropdownMenuContent></DropdownMenu></SidebarFooter>
-  </Sidebar><div className={`absolute right-0 top-0 z-50 h-full w-1 cursor-col-resize transition hover:bg-[#ed5739]/50 ${isCollapsed ? "hidden" : ""}`} onMouseDown={() => !isCollapsed && setIsResizing(true)} /></div><SidebarInset className="bg-[#f6f2eb]">{isMobile && <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-[#e4ddd2] bg-[#f6f2eb]/95 px-4 backdrop-blur"><div className="flex items-center gap-2"><SidebarTrigger className="rounded-xl" /><span className="font-display text-lg">{activeMenuItem.label}</span></div><span className="grid h-8 w-8 place-items-center rounded-full bg-[#ed5739] text-xs font-bold text-white">Q</span></header>}<main className="min-h-screen p-4 sm:p-6 lg:p-9">{children}</main></SidebarInset></>;
+  useEffect(() => { const move = (event: MouseEvent) => { if (!isResizing) return; const left = sidebarRef.current?.getBoundingClientRect().left ?? 0; const width = event.clientX - left; if (width >= MIN_WIDTH && width <= MAX_WIDTH) setSidebarWidth(width); }; const end = () => setIsResizing(false); if (isResizing) { document.addEventListener("mousemove", move); document.addEventListener("mouseup", end); document.body.style.cursor = "col-resize"; } return () => { document.removeEventListener("mousemove", move); document.removeEventListener("mouseup", end); document.body.style.cursor = ""; }; }, [isResizing, setSidebarWidth]);
+  return <><div className="relative" ref={sidebarRef}><Sidebar collapsible="icon" className="border-r border-[#322f2b] bg-[#1d1b19] text-[#f5efe6]" disableTransition={isResizing}><SidebarHeader className="h-20 justify-center px-3"><div className="flex items-center gap-3"><button onClick={toggleSidebar} aria-label="Toggle navigation" className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[#c9c1b5] transition hover:bg-white/8 hover:text-white"><PanelLeft className="h-4 w-4" /></button>{!isCollapsed && <button onClick={() => setLocation("/app")} className="text-left"><span className="block font-display text-xl leading-none tracking-tight">QRServe</span><span className="mt-1 block text-[10px] uppercase tracking-[0.22em] text-[#b6a993]">local menu service</span></button>}</div></SidebarHeader><SidebarContent className="px-3 pt-4"><SidebarMenu className="gap-1">{menuItems.map(item => <SidebarMenuItem key={item.label}><SidebarMenuButton isActive={location === item.path || (item.label === "Menu work" && location.startsWith("/app/menu")) || (item.label === "Table cards" && location.startsWith("/app/qr"))} onClick={() => setLocation(item.path)} tooltip={item.label} className="h-11 rounded-xl text-[#c9c1b5] hover:bg-white/8 hover:text-white data-[active=true]:bg-[#f4ede3] data-[active=true]:text-[#201d19]"><item.icon className="h-4 w-4" /><span>{item.label}</span></SidebarMenuButton></SidebarMenuItem>)}</SidebarMenu></SidebarContent><SidebarFooter className="p-3"><DropdownMenu><DropdownMenuTrigger asChild><button className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-white/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ed5739]"><Avatar className="h-9 w-9 border-0 bg-[#ed5739]"><AvatarFallback className="bg-[#ed5739] text-sm font-semibold text-white">{user?.name?.charAt(0).toUpperCase() ?? "O"}</AvatarFallback></Avatar><div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden"><p className="truncate text-sm font-medium text-[#f5efe6]">{user?.name || "QRServe operator"}</p><p className="mt-0.5 truncate text-xs text-[#a79e91]">{user?.email || "Service desk"}</p></div></button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={logout} className="text-destructive"><LogOut className="mr-2 h-4 w-4" />Sign out</DropdownMenuItem></DropdownMenuContent></DropdownMenu></SidebarFooter></Sidebar><div className={`absolute right-0 top-0 z-50 h-full w-1 cursor-col-resize transition hover:bg-[#ed5739]/50 ${isCollapsed ? "hidden" : ""}`} onMouseDown={() => !isCollapsed && setIsResizing(true)} /></div><SidebarInset className="bg-[#f6f2eb]">{isMobile && <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-[#e4ddd2] bg-[#f6f2eb]/95 px-4 backdrop-blur"><div className="flex items-center gap-2"><SidebarTrigger className="rounded-xl" /><span className="font-display text-lg">{activeMenuItem.label}</span></div><span className="grid h-8 w-8 place-items-center rounded-full bg-[#ed5739] text-xs font-bold text-white">Q</span></header>}<main className="min-h-screen p-4 sm:p-6 lg:p-9">{children}</main></SidebarInset></>;
 }

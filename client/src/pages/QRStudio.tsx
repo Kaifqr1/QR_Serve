@@ -116,9 +116,9 @@ export default function QRStudio() {
         <button onClick={() => setLocation(`/app/menu/${restaurantId}`)} className="text-sm text-[#766b5d] transition hover:text-[#201d19]">← Back to menu builder</button>
         <div className="mt-5 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div>
-            <p className="eyebrow border-[#d9cabe] text-[#8b7560]">QR card designer</p>
-            <h1 className="mt-3 max-w-2xl font-display text-4xl tracking-[-0.045em] text-[#201d19] sm:text-5xl">Make every scan feel like your restaurant.</h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-[#706459]">Choose a print-ready style, add your restaurant mark, and give guests a clear invitation to explore the menu.</p>
+            <p className="eyebrow border-[#d9cabe] text-[#8b7560]">Table-card service</p>
+            <h1 className="mt-3 max-w-2xl font-display text-4xl tracking-[-0.045em] text-[#201d19] sm:text-5xl">Prepare a card that feels right for the venue.</h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-[#706459]">Choose a print-ready direction, add the venue mark, and hand over a clear invitation for guests to explore the menu.</p>
           </div>
           {restaurant.data && <a href={`/menu/${restaurant.data.slug}`} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center justify-center rounded-full border border-[#d7cfc3] px-4 text-sm font-medium text-[#201d19] transition hover:border-[#201d19]"><ExternalLink className="mr-2 h-4 w-4" />Open public menu</a>}
         </div>
@@ -142,7 +142,7 @@ export default function QRStudio() {
           </aside>
 
           <section>
-            <div className="mb-3 flex items-center justify-between px-1"><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#7d7064]">Live print preview</p><p className="inline-flex items-center gap-1.5 text-xs text-[#7b6f62]"><Sparkles className="h-3.5 w-3.5 text-[#df583a]" />Restaurant-branded</p></div>
+            <div className="mb-3 flex items-center justify-between px-1"><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#7d7064]">Live print preview</p><p className="inline-flex items-center gap-1.5 text-xs text-[#7b6f62]"><Sparkles className="h-3.5 w-3.5 text-[#df583a]" />Venue-ready</p></div>
             <article className="qr-print-card relative mx-auto min-h-[630px] max-w-[540px] overflow-hidden rounded-[2.25rem] border p-5 shadow-[0_20px_50px_rgba(74,47,26,0.18)] sm:p-8" style={cardStyle}>
               <div className="qr-print-flourish pointer-events-none absolute inset-0" />
               <div className="relative flex min-h-[570px] flex-col">
@@ -163,11 +163,11 @@ export default function QRStudio() {
                   <div className="qr-code-frame mx-auto max-w-[292px] rounded-[1.6rem] border p-3 shadow-[0_14px_30px_rgba(22,16,11,0.12)]" style={{ background: "var(--qr-frame)", borderColor: "rgba(23,20,17,0.10)" }}>
                     {image ? <img src={image} alt={`QR code for ${restaurant.data?.name ?? "restaurant"} public menu`} className="block h-auto w-full" /> : <div className="grid aspect-square place-items-center"><QrCode className="h-10 w-10 animate-pulse text-[#9c8d7b]" /></div>}
                   </div>
-                  <p className="mt-5 text-center text-sm font-semibold" style={{ color: "var(--qr-ink)" }}>Point your camera to view our menu</p>
-                  <p className="mt-1 text-center text-xs" style={{ color: "var(--qr-muted)" }}>No app. No waiting. Just the latest menu.</p>
+                  <p className="mt-5 text-center text-sm font-semibold" style={{ color: "var(--qr-ink)" }}>Point your camera to view today’s menu</p>
+                  <p className="mt-1 text-center text-xs" style={{ color: "var(--qr-muted)" }}>No app. Just the latest menu from this venue.</p>
                 </div>
 
-                <div className="mt-8 flex items-center justify-between border-t pt-4 text-[10px] font-semibold uppercase tracking-[0.15em]" style={{ color: "var(--qr-muted)", borderColor: "var(--qr-border)" }}><span>Digital menu</span><span>Powered by QRServe</span></div>
+                <div className="mt-8 flex items-center justify-between border-t pt-4 text-[10px] font-semibold uppercase tracking-[0.15em]" style={{ color: "var(--qr-muted)", borderColor: "var(--qr-border)" }}><span>Table menu</span><span>QRServe local service</span></div>
               </div>
             </article>
 

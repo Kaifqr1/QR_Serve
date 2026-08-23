@@ -112,3 +112,14 @@
 - [x] Verify the restored hero visual loads on live Vercel at desktop and mobile widths.
 - [x] Reconfirm the unavailable managed-storage hero source is removed and the replacement has meaningful alt text.
 - [x] Run a production build and live Vercel browser check for the restored hero visual before finalizing the repair.
+- [x] Inventory current QRServe capabilities, administrator workflows, guest workflows, deployment dependencies, and operating limitations for the project handbook.
+- [x] Write and typeset a comprehensive QRServe project handbook PDF with feature explanations and step-by-step operating guidance.
+- [x] Compile, verify, and visually review the handbook PDF before delivering it.
+- [x] Audit QRServe’s public pages, SEO, workspace labels, QR card copy, and documentation for self-service SaaS language.
+- [x] Rewrite the landing page and primary calls to action around an operator-led local digital-menu service for cafés and restaurants.
+- [x] Align private workspace wording, QR card copy, public menu language, metadata, and documentation with the service-provider workflow.
+- [ ] Verify desktop/mobile presentation, authentication paths, and the local-service customer journey after the repositioning.
+- [ ] Confirm the landing-page and SEO copy changes are applied, then build and browser-check their local-service calls to action.
+- [ ] Confirm the operator service-desk language is applied across the private workspace, venue management, sign-in, and table-card screens.
+- [ ] Rewrite the project handbook and remaining guest-facing service copy for the operator-led local digital-menu service model, then verify desktop/mobile and authentication paths.
+- [x] Add focused automated coverage that preserves QRServe’s local service positioning in its primary public service steps.
