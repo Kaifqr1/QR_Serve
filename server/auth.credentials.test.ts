@@ -143,6 +143,7 @@ describe("credential authentication router", () => {
     mocks.getDb.mockResolvedValue({
       select,
       insert: vi.fn(() => ({ values })),
+      execute: vi.fn().mockResolvedValue(undefined),
     });
     const { caller, cookies } = unauthenticatedCaller();
 

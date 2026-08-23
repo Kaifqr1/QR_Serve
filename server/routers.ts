@@ -80,6 +80,36 @@ async function database() {
   return db;
 }
 
+let ownerActivityStorageReady: Promise<void> | null = null;
+
+function ensureOwnerActivityStorage(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>
+) {
+  if (!ownerActivityStorageReady) {
+    ownerActivityStorageReady = db
+      .execute(sql.raw(`
+        CREATE TABLE IF NOT EXISTS owner_activity_events (
+          id int AUTO_INCREMENT NOT NULL,
+          ownerId int NOT NULL,
+          restaurantId int,
+          eventType varchar(64) NOT NULL,
+          summary varchar(280) NOT NULL,
+          createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          KEY owner_activity_owner_idx (ownerId),
+          KEY owner_activity_restaurant_idx (restaurantId),
+          KEY owner_activity_created_idx (createdAt)
+        ) ENGINE=InnoDB
+      `))
+      .then(() => undefined)
+      .catch(error => {
+        ownerActivityStorageReady = null;
+        throw error;
+      });
+  }
+  return ownerActivityStorageReady;
+}
+
 async function recordOwnerActivity(
   db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
   event: {
@@ -90,6 +120,7 @@ async function recordOwnerActivity(
   }
 ) {
   try {
+    await ensureOwnerActivityStorage(db);
     await db.insert(ownerActivityEvents).values({
       ownerId: event.ownerId,
       restaurantId: event.restaurantId ?? null,
@@ -699,6 +730,7 @@ export const appRouter = router({
         .input(activityListInput)
         .query(async ({ input }) => {
           const db = await database();
+          await ensureOwnerActivityStorage(db);
           return db
             .select({
               id: ownerActivityEvents.id,
