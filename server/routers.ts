@@ -1,4 +1,4 @@
-import { and, asc, count, eq, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -6,6 +6,7 @@ import {
   analyticsEvents,
   menuCategories,
   menuItems,
+  ownerActivityEvents,
   restaurants,
   users,
 } from "../drizzle/schema";
@@ -22,7 +23,12 @@ import {
 import { getDb, getOwnedRestaurant } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import {
+  adminProcedure,
+  protectedProcedure,
+  publicProcedure,
+  router,
+} from "./_core/trpc";
 import { StorageConfigurationError, storagePut } from "./storage";
 import { COOKIE_NAME } from "@shared/const";
 import { isImageSignatureValid } from "./security";
@@ -47,6 +53,21 @@ const credentialsInput = z.object({
 const venueOwnerRegistrationInput = credentialsInput.extend({
   name: z.string().trim().min(2).max(80),
 });
+const activityListInput = z
+  .object({ limit: z.number().int().min(1).max(100).default(100) })
+  .optional();
+
+type OwnerActivityEventType =
+  | "VENUE_OWNER_REGISTERED"
+  | "RESTAURANT_CREATED"
+  | "RESTAURANT_UPDATED"
+  | "RESTAURANT_DELETED"
+  | "CATEGORY_CREATED"
+  | "CATEGORY_UPDATED"
+  | "CATEGORY_DELETED"
+  | "MENU_ITEM_CREATED"
+  | "MENU_ITEM_UPDATED"
+  | "MENU_ITEM_DELETED";
 
 async function database() {
   const db = await getDb();
@@ -57,6 +78,31 @@ async function database() {
         "QRServe data storage is not available yet. Please try again shortly.",
     });
   return db;
+}
+
+async function recordOwnerActivity(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
+  event: {
+    ownerId: number;
+    restaurantId?: number | null;
+    eventType: OwnerActivityEventType;
+    summary: string;
+  }
+) {
+  try {
+    await db.insert(ownerActivityEvents).values({
+      ownerId: event.ownerId,
+      restaurantId: event.restaurantId ?? null,
+      eventType: event.eventType,
+      summary: event.summary.slice(0, 280),
+    });
+  } catch {
+    // A completed venue-owner change must not be reverted because telemetry is unavailable.
+    console.error("QRServe owner activity audit write failed", {
+      ownerId: event.ownerId,
+      eventType: event.eventType,
+    });
+  }
 }
 
 function safeImageStorageFailure(error: unknown) {
@@ -257,6 +303,11 @@ export const appRouter = router({
           ...getSessionCookieOptions(ctx.req),
           maxAge: LOCAL_SESSION_MAX_AGE_MS,
         });
+        await recordOwnerActivity(db, {
+          ownerId: user[0].id,
+          eventType: "VENUE_OWNER_REGISTERED",
+          summary: "Venue owner account registered.",
+        });
         return publicUser(user[0]);
       }),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -305,13 +356,21 @@ export const appRouter = router({
           .from(restaurants)
           .where(eq(restaurants.id, Number(result[0].insertId)))
           .limit(1);
+        if (row[0]) {
+          await recordOwnerActivity(db, {
+            ownerId: ctx.user.id,
+            restaurantId: row[0].id,
+            eventType: "RESTAURANT_CREATED",
+            summary: `Created venue “${row[0].name}”.`,
+          });
+        }
         return row[0];
       }),
     update: protectedProcedure
       .input(restaurantUpdateInput)
       .mutation(async ({ ctx, input }) => {
         const db = await database();
-        await owned(ctx.user.id, input.id);
+        const restaurant = await owned(ctx.user.id, input.id);
         await db
           .update(restaurants)
           .set({
@@ -322,14 +381,26 @@ export const appRouter = router({
             logoUrl: input.logoUrl || null,
           })
           .where(eq(restaurants.id, input.id));
+        await recordOwnerActivity(db, {
+          ownerId: ctx.user.id,
+          restaurantId: input.id,
+          eventType: "RESTAURANT_UPDATED",
+          summary: `Updated venue “${input.name || restaurant.name}”.`,
+        });
         return { success: true } as const;
       }),
     delete: protectedProcedure
       .input(idInput)
       .mutation(async ({ ctx, input }) => {
         const db = await database();
-        await owned(ctx.user.id, input.id);
+        const restaurant = await owned(ctx.user.id, input.id);
         await db.delete(restaurants).where(eq(restaurants.id, input.id));
+        await recordOwnerActivity(db, {
+          ownerId: ctx.user.id,
+          restaurantId: input.id,
+          eventType: "RESTAURANT_DELETED",
+          summary: `Deleted venue “${restaurant.name}”.`,
+        });
         return { success: true } as const;
       }),
   }),
@@ -364,6 +435,14 @@ export const appRouter = router({
           .from(menuCategories)
           .where(eq(menuCategories.id, Number(result[0].insertId)))
           .limit(1);
+        if (row[0]) {
+          await recordOwnerActivity(db, {
+            ownerId: ctx.user.id,
+            restaurantId: input.restaurantId,
+            eventType: "CATEGORY_CREATED",
+            summary: `Created category “${row[0].name}”.`,
+          });
+        }
         return row[0];
       }),
     update: protectedProcedure
@@ -385,6 +464,12 @@ export const appRouter = router({
           .update(menuCategories)
           .set({ name: input.name, description: input.description || null })
           .where(eq(menuCategories.id, input.id));
+        await recordOwnerActivity(db, {
+          ownerId: ctx.user.id,
+          restaurantId: current[0].restaurantId,
+          eventType: "CATEGORY_UPDATED",
+          summary: `Updated category “${input.name}”.`,
+        });
         return { success: true } as const;
       }),
     delete: protectedProcedure
@@ -403,6 +488,12 @@ export const appRouter = router({
           });
         await owned(ctx.user.id, current[0].restaurantId);
         await db.delete(menuCategories).where(eq(menuCategories.id, input.id));
+        await recordOwnerActivity(db, {
+          ownerId: ctx.user.id,
+          restaurantId: current[0].restaurantId,
+          eventType: "CATEGORY_DELETED",
+          summary: `Deleted category “${current[0].name}”.`,
+        });
         return { success: true } as const;
       }),
   }),
@@ -457,6 +548,14 @@ export const appRouter = router({
           .from(menuItems)
           .where(eq(menuItems.id, Number(result[0].insertId)))
           .limit(1);
+        if (row[0]) {
+          await recordOwnerActivity(db, {
+            ownerId: ctx.user.id,
+            restaurantId: input.restaurantId,
+            eventType: "MENU_ITEM_CREATED",
+            summary: `Created menu item “${row[0].name}”.`,
+          });
+        }
         return row[0] ? { ...row[0], price: Number(row[0].price) } : null;
       }),
     update: protectedProcedure
@@ -513,6 +612,12 @@ export const appRouter = router({
             version: current[0].version + 1,
           })
           .where(eq(menuItems.id, input.id));
+        await recordOwnerActivity(db, {
+          ownerId: ctx.user.id,
+          restaurantId: current[0].restaurantId,
+          eventType: "MENU_ITEM_UPDATED",
+          summary: `Updated menu item “${input.name ?? current[0].name}”.`,
+        });
         return { success: true } as const;
       }),
     delete: protectedProcedure
@@ -531,6 +636,12 @@ export const appRouter = router({
           });
         await owned(ctx.user.id, current[0].restaurantId);
         await db.delete(menuItems).where(eq(menuItems.id, input.id));
+        await recordOwnerActivity(db, {
+          ownerId: ctx.user.id,
+          restaurantId: current[0].restaurantId,
+          eventType: "MENU_ITEM_DELETED",
+          summary: `Deleted menu item “${current[0].name}”.`,
+        });
         return { success: true } as const;
       }),
     uploadImage: protectedProcedure
@@ -581,6 +692,35 @@ export const appRouter = router({
           });
         }
       }),
+  }),
+  admin: router({
+    activity: router({
+      list: adminProcedure
+        .input(activityListInput)
+        .query(async ({ input }) => {
+          const db = await database();
+          return db
+            .select({
+              id: ownerActivityEvents.id,
+              ownerId: ownerActivityEvents.ownerId,
+              ownerName: users.name,
+              ownerEmail: users.email,
+              restaurantId: ownerActivityEvents.restaurantId,
+              restaurantName: restaurants.name,
+              eventType: ownerActivityEvents.eventType,
+              summary: ownerActivityEvents.summary,
+              createdAt: ownerActivityEvents.createdAt,
+            })
+            .from(ownerActivityEvents)
+            .leftJoin(users, eq(ownerActivityEvents.ownerId, users.id))
+            .leftJoin(
+              restaurants,
+              eq(ownerActivityEvents.restaurantId, restaurants.id)
+            )
+            .orderBy(desc(ownerActivityEvents.createdAt), desc(ownerActivityEvents.id))
+            .limit(input?.limit ?? 100);
+        }),
+    }),
   }),
   public: router({
     menu: publicProcedure

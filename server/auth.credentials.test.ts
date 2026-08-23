@@ -1,11 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 
-const mocks = vi.hoisted(() => ({ getDb: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  getDb: vi.fn(),
+  getOwnedRestaurant: vi.fn(),
+}));
 
 vi.mock("./db", () => ({
   getDb: mocks.getDb,
   getUserById: vi.fn(),
+  getOwnedRestaurant: mocks.getOwnedRestaurant,
 }));
 
 import { appRouter } from "./routers";
@@ -33,6 +37,35 @@ function unauthenticatedCaller() {
   return { caller: appRouter.createCaller(ctx), cookies };
 }
 
+function venueOwnerCaller() {
+  const ctx: TrpcContext = {
+    user: {
+      id: 9,
+      openId: "venue-owner-9",
+      name: "Venue Owner",
+      email: "owner@cafe.com",
+      passwordHash: "hashed-password",
+      loginMethod: "password",
+      role: "user",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSignedIn: new Date(),
+    },
+    req: { protocol: "https", headers: {} } as TrpcContext["req"],
+    res: { clearCookie: vi.fn() } as TrpcContext["res"],
+  };
+  return appRouter.createCaller(ctx);
+}
+
+function administratorCaller() {
+  const ctx: TrpcContext = {
+    user: administrator,
+    req: { protocol: "https", headers: {} } as TrpcContext["req"],
+    res: { clearCookie: vi.fn() } as TrpcContext["res"],
+  };
+  return appRouter.createCaller(ctx);
+}
+
 const administrator = {
   id: 1,
   openId: "legacy-admin",
@@ -50,6 +83,7 @@ describe("credential authentication router", () => {
   beforeEach(() => {
     ENV.cookieSecret = "test-session-secret-with-at-least-32-characters";
     mocks.getDb.mockReset();
+    mocks.getOwnedRestaurant.mockReset();
   });
 
   it("exposes restricted venue-owner registration but not legacy claiming", () => {
@@ -126,6 +160,13 @@ describe("credential authentication router", () => {
         loginMethod: "password",
       })
     );
+    expect(values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownerId: 9,
+        eventType: "VENUE_OWNER_REGISTERED",
+        summary: "Venue owner account registered.",
+      })
+    );
     expect(created).toMatchObject({
       id: 9,
       email: "owner@cafe.com",
@@ -138,6 +179,63 @@ describe("credential authentication router", () => {
       secure: true,
       sameSite: "none",
     });
+  });
+
+  it("prevents a standard venue owner from reading or editing another owner’s restaurant", async () => {
+    mocks.getOwnedRestaurant.mockResolvedValue(undefined);
+    const insert = vi.fn();
+    mocks.getDb.mockResolvedValue({ insert });
+    const caller = venueOwnerCaller();
+
+    await expect(caller.restaurant.get({ id: 700 })).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+    await expect(
+      caller.menu.create({
+        restaurantId: 700,
+        categoryId: 701,
+        name: "Unauthorised dish",
+        description: "",
+        price: 320,
+        imageUrl: "",
+        isAvailable: true,
+      })
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(mocks.getOwnedRestaurant).toHaveBeenCalledWith(9, 700);
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("denies standard venue owners access to the administrator activity feed", async () => {
+    const caller = venueOwnerCaller();
+
+    await expect(caller.admin.activity.list({ limit: 20 })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(mocks.getDb).not.toHaveBeenCalled();
+  });
+
+  it("allows an administrator to receive a bounded activity feed", async () => {
+    const limit = vi.fn().mockResolvedValue([
+      {
+        id: 1,
+        ownerId: 9,
+        ownerName: "Venue Owner",
+        ownerEmail: "owner@cafe.com",
+        restaurantId: 700,
+        restaurantName: "Marigold Café",
+        eventType: "MENU_ITEM_CREATED",
+        summary: "Created menu item “Masala toast”.",
+        createdAt: new Date("2026-08-24T10:00:00.000Z"),
+      },
+    ]);
+    const orderBy = vi.fn(() => ({ limit }));
+    const secondLeftJoin = vi.fn(() => ({ orderBy }));
+    const firstLeftJoin = vi.fn(() => ({ leftJoin: secondLeftJoin }));
+    const from = vi.fn(() => ({ leftJoin: firstLeftJoin }));
+    mocks.getDb.mockResolvedValue({ select: vi.fn(() => ({ from })) });
+
+    await expect(administratorCaller().admin.activity.list({ limit: 20 })).resolves.toHaveLength(1);
+    expect(limit).toHaveBeenCalledWith(20);
   });
 
   it("reports the active database name without exposing a connection string", async () => {

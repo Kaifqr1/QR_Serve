@@ -1,5 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import ActivityMonitor from "@/pages/ActivityMonitor";
 import Dashboard from "@/pages/Dashboard";
 import DemoMenu from "@/pages/DemoMenu";
 import Home from "@/pages/Home";
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/demo" component={DemoMenu} />
       <Route path="/sign-in" component={SignIn} />
       <Route path="/app" component={Dashboard} />
+      <Route path="/app/activity" component={ActivityMonitor} />
       <Route path="/app/restaurants" component={Restaurants} />
       <Route path="/app/menu/:id" component={MenuBuilder} />
       <Route path="/app/qr/:id" component={QRStudio} />

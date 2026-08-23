@@ -61,5 +61,14 @@ export const analyticsEvents = mysqlTable("analyticsEvents", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, table => [index("analytics_restaurant_idx").on(table.restaurantId), index("analytics_created_idx").on(table.createdAt)]);
 
+export const ownerActivityEvents = mysqlTable("owner_activity_events", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  restaurantId: int("restaurantId"),
+  eventType: varchar("eventType", { length: 64 }).notNull(),
+  summary: varchar("summary", { length: 280 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [index("owner_activity_owner_idx").on(table.ownerId), index("owner_activity_restaurant_idx").on(table.restaurantId), index("owner_activity_created_idx").on(table.createdAt)]);
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
