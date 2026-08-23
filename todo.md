@@ -124,3 +124,8 @@
 - [x] Rewrite the project handbook and remaining guest-facing service copy for the operator-led local digital-menu service model, then verify desktop/mobile and authentication paths.
 - [x] Add focused automated coverage that preserves QRServe’s local service positioning in its primary public service steps.
 - [x] Align the Vercel deployment guide’s operational wording with administrator-led client-venue setup and maintenance.
+- [x] Add accessible scroll-triggered motion to the guest-facing public menu without disrupting search, category filtering, or the private guest order list.
+- [x] Create a polished no-login demo restaurant menu that can be shared during café and restaurant sales demonstrations.
+- [x] Add focused regression coverage and verify the animated customer menu and demo showcase on desktop, mobile, and reduced-motion settings.
+- [x] Prove the guest-menu pages render without motion props when reduced motion is enabled, and record that UI-level verification.
+- [ ] Deploy and verify the shareable demo restaurant at `https://qr-serve-three.vercel.app/`.
