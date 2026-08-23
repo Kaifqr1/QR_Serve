@@ -4,8 +4,9 @@ import { scrollReveal } from "@/lib/scrollReveal";
 import { ArrowRight, Check, QrCode, ScanLine, Sparkles, UtensilsCrossed } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useLocation } from "wouter";
+import { useState } from "react";
 
-const heroImage = "/manus-storage/qrserve-hero-ambient-qr_75e8c393.jpg";
+const heroImage = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1800&q=88";
 
 const serviceSteps = [
   { number: "01", title: "Shape your menu", copy: "Add categories, dishes, prices and vibrant food photography from a single workspace.", icon: UtensilsCrossed },
@@ -17,6 +18,7 @@ export default function Home() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const reducedMotion = useReducedMotion();
+  const [heroImageFailed, setHeroImageFailed] = useState(false);
   const enterWorkspace = () => setLocation(isAuthenticated ? "/app" : "/sign-in");
   const reveal = (delay = 0, offset = 24) => scrollReveal(Boolean(reducedMotion), delay, offset);
 
@@ -50,7 +52,7 @@ export default function Home() {
         </motion.div>
 
         <motion.div {...reveal(0.12, 18)} className="relative min-h-[430px] overflow-hidden rounded-[2.2rem] border border-white/10 bg-[#292520] shadow-[0_30px_90px_rgba(0,0,0,0.32)] sm:min-h-[540px]">
-          <img src={heroImage} alt="A glowing, sculptural QR-inspired menu tile in a warmly lit restaurant" className="absolute inset-0 h-full w-full object-cover opacity-90" />
+          {!heroImageFailed ? <img src={heroImage} alt="Warmly lit restaurant interior ready for a digital menu scan" onError={() => setHeroImageFailed(true)} className="absolute inset-0 h-full w-full object-cover opacity-90" /> : <div aria-hidden="true" className="absolute inset-0 overflow-hidden bg-[radial-gradient(circle_at_72%_28%,rgba(237,87,57,0.7),transparent_14%),radial-gradient(circle_at_28%_76%,rgba(141,74,40,0.42),transparent_30%),linear-gradient(145deg,#30241f_0%,#131110_66%,#211916_100%)]"><div className="absolute right-[19%] top-[18%] h-48 w-48 rotate-12 rounded-[2rem] border border-[#f67557]/60 bg-[#481e17]/80 shadow-[0_0_70px_rgba(237,87,57,0.42)]"><div className="absolute inset-6 grid grid-cols-5 gap-1.5 opacity-85">{Array.from({ length: 25 }, (_, index) => <span key={index} className={`rounded-[2px] ${[0, 1, 5, 6, 18, 19, 23, 24, 12, 14, 16].includes(index) ? "bg-[#f5d8c7]" : "bg-[#a53728]"}`} />)}</div></div><div className="absolute -right-16 bottom-0 h-64 w-72 rounded-t-[6rem] bg-[#0d0c0b]/70 blur-xl" /></div>}
           <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(17,15,13,0.82)_0%,rgba(17,15,13,0.1)_48%,rgba(17,15,13,0.48)_100%)]" />
           <div className="absolute left-6 top-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-[#191613]/55 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#e6d9c7] backdrop-blur-md"><span className="h-1.5 w-1.5 rounded-full bg-[#ed5739] shadow-[0_0_12px_#ed5739]" />Made for the moment</div>
           <div className="absolute bottom-6 left-6 right-6 grid grid-cols-[auto_1fr] gap-4 rounded-2xl border border-white/15 bg-[#1d1a17]/75 p-4 backdrop-blur-md"><div className="grid h-14 w-14 place-items-center rounded-xl bg-[#ed5739] text-white shadow-[0_0_30px_rgba(237,87,57,0.28)]"><ScanLine className="h-7 w-7" /></div><div><p className="text-xs uppercase tracking-[0.2em] text-[#c9c1b5]">From scan to service</p><p className="mt-1 font-display text-2xl">A better table begins with one small gesture.</p></div></div>

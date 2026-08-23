@@ -107,3 +107,8 @@
 - [x] Verify guest order-list interactions, persistence, and mobile-friendly behavior on the public menu.
 - [x] Verify the live QR Studio branded card and all three style controls fit and remain usable on an actual phone screen.
 - [x] On a phone, switch through each QR Studio style and confirm the branded card updates cleanly without overflow or layout breakage.
+- [x] Inspect the failed production landing hero image source and remove its unavailable managed-storage dependency.
+- [x] Replace the landing hero visual with a production-safe branded image source and preserve accessible alt text.
+- [ ] Verify the restored hero visual loads on live Vercel at desktop and mobile widths.
+- [ ] Reconfirm the unavailable managed-storage hero source is removed and the replacement has meaningful alt text.
+- [ ] Run a production build and live Vercel browser check for the restored hero visual before finalizing the repair.
