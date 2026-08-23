@@ -99,8 +99,11 @@
 - [x] Verify the branded QR card at a mobile viewport for readable layout and usable controls.
 - [x] Verify print-only card visibility, sizing, and QR quiet zone before finalizing the print designer.
 - [x] Verify the generated QR remains scannable after style switching and reaches the intended guest menu.
-- [ ] Browser-verify the branded QR card at an actual mobile viewport for usable layout and controls.
-- [ ] Confirm the print-only QR card in a real print preview, including isolation, sizing, and its white quiet zone.
+- [x] Browser-verify the branded QR card at an actual mobile viewport for usable layout and controls.
+- [x] Confirm the print-only QR card in a real print preview, including isolation, sizing, and its white quiet zone.
+- [x] Reconfirm the branded QR card’s final one-page fit and white quiet zone after print settings are applied.
 - [x] Review the current public menu data and interactions for a guest-side order list that does not submit an order or require personal information.
 - [x] Add guest add-to-order controls, quantity management, and an order summary with local browser persistence.
-- [ ] Verify guest order-list interactions, persistence, and mobile-friendly behavior on the public menu.
+- [x] Verify guest order-list interactions, persistence, and mobile-friendly behavior on the public menu.
+- [x] Verify the live QR Studio branded card and all three style controls fit and remain usable on an actual phone screen.
+- [x] On a phone, switch through each QR Studio style and confirm the branded card updates cleanly without overflow or layout breakage.
