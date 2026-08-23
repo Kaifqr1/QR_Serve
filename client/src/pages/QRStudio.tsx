@@ -9,6 +9,13 @@ import { useLocation, useRoute } from "wouter";
 
 export type QrCardStyle = "editorial" | "midnight" | "garden";
 
+export const QR_CODE_OPTIONS = {
+  width: 800,
+  margin: 4,
+  errorCorrectionLevel: "H" as const,
+  color: { dark: "#171411", light: "#ffffff" },
+};
+
 export const QR_CARD_STYLES: Record<QrCardStyle, { name: string; description: string; eyebrow: string; accent: string; accentSoft: string; paper: string; ink: string; muted: string; border: string; qrFrame: string; flourish: string }> = {
   editorial: {
     name: "Warm editorial",
@@ -80,12 +87,7 @@ export default function QRStudio() {
 
   useEffect(() => {
     if (!publicUrl) return;
-    QRCode.toDataURL(publicUrl, {
-      width: 800,
-      margin: 4,
-      errorCorrectionLevel: "H",
-      color: { dark: "#171411", light: "#ffffff" },
-    }).then(setImage).catch(() => toast.error("QR image could not be prepared."));
+    QRCode.toDataURL(publicUrl, QR_CODE_OPTIONS).then(setImage).catch(() => toast.error("QR image could not be prepared."));
   }, [publicUrl]);
 
   const copy = async () => {

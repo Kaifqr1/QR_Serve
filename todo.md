@@ -93,6 +93,14 @@
 - [x] Diagnose and correct the Cloudinary rejection returned by the live menu image-upload mutation.
 - [x] Audit the current QR Studio implementation and define a print-safe branded-card design system.
 - [x] Build selectable restaurant-branded QR print-card layouts with configurable visual styling and a reliable QR quiet zone.
-- [ ] Verify desktop/mobile preview, print behavior, QR readability, and automated checks for the branded card designer.
-- [ ] Confirm focused QR card preset and restaurant-mark tests remain green after the visual implementation.
-- [ ] Browser-verify the branded QR card preview and preset switching before saving the upgrade.
+- [x] Verify desktop/mobile preview, print behavior, QR readability, and automated checks for the branded card designer.
+- [x] Confirm focused QR card preset and restaurant-mark tests remain green after the visual implementation.
+- [x] Browser-verify the branded QR card preview and preset switching before saving the upgrade.
+- [x] Verify the branded QR card at a mobile viewport for readable layout and usable controls.
+- [x] Verify print-only card visibility, sizing, and QR quiet zone before finalizing the print designer.
+- [x] Verify the generated QR remains scannable after style switching and reaches the intended guest menu.
+- [ ] Browser-verify the branded QR card at an actual mobile viewport for usable layout and controls.
+- [ ] Confirm the print-only QR card in a real print preview, including isolation, sizing, and its white quiet zone.
+- [x] Review the current public menu data and interactions for a guest-side order list that does not submit an order or require personal information.
+- [x] Add guest add-to-order controls, quantity management, and an order summary with local browser persistence.
+- [ ] Verify guest order-list interactions, persistence, and mobile-friendly behavior on the public menu.
