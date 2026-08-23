@@ -118,8 +118,9 @@
 - [x] Audit QRServe’s public pages, SEO, workspace labels, QR card copy, and documentation for self-service SaaS language.
 - [x] Rewrite the landing page and primary calls to action around an operator-led local digital-menu service for cafés and restaurants.
 - [x] Align private workspace wording, QR card copy, public menu language, metadata, and documentation with the service-provider workflow.
-- [ ] Verify desktop/mobile presentation, authentication paths, and the local-service customer journey after the repositioning.
-- [ ] Confirm the landing-page and SEO copy changes are applied, then build and browser-check their local-service calls to action.
-- [ ] Confirm the operator service-desk language is applied across the private workspace, venue management, sign-in, and table-card screens.
-- [ ] Rewrite the project handbook and remaining guest-facing service copy for the operator-led local digital-menu service model, then verify desktop/mobile and authentication paths.
+- [x] Verify desktop/mobile presentation, authentication paths, and the local-service customer journey after the repositioning.
+- [x] Confirm the landing-page and SEO copy changes are applied, then build and browser-check their local-service calls to action.
+- [x] Confirm the operator service-desk language is applied across the private workspace, venue management, sign-in, and table-card screens.
+- [x] Rewrite the project handbook and remaining guest-facing service copy for the operator-led local digital-menu service model, then verify desktop/mobile and authentication paths.
 - [x] Add focused automated coverage that preserves QRServe’s local service positioning in its primary public service steps.
+- [x] Align the Vercel deployment guide’s operational wording with administrator-led client-venue setup and maintenance.

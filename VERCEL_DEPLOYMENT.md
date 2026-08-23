@@ -1,4 +1,4 @@
-# QRServe deployment readiness for Vercel
+# QRServe local-service deployment readiness for Vercel
 
 ## Current readiness
 
@@ -25,7 +25,7 @@ Configure the following values in **Production** and, where appropriate, **Previ
 | --- | --- | --- |
 | Image storage | Authenticated Cloudinary server-side upload | Set `CLOUDINARY_URL` in Vercel for Production and Preview, then redeploy. QRServe validates JPG/PNG/WebP data and signatures, preserves the 5 MB maximum, and stores only Cloudinary’s public HTTPS URL in TiDB. |
 | Database | Managed runtime database variable | Provision an external database, allow Vercel connectivity, enable TLS, and apply migrations outside a request path. |
-| Authentication | QRServe email/password accounts stored in TiDB | Run `TIDB_AUTH_MIGRATION.sql` once against the external `qrserve` database before creating the first account. The former `VITE_APP_ID`, `OAUTH_SERVER_URL`, and `VITE_OAUTH_PORTAL_URL` values are no longer required. |
+| Authentication | Administrator-only QRServe email/password access stored in TiDB | Run `TIDB_AUTH_MIGRATION.sql` once against the external `qrserve` database before activating the service-operator account. The former `VITE_APP_ID`, `OAUTH_SERVER_URL`, and `VITE_OAUTH_PORTAL_URL` values are no longer required. |
 | Rate limiting | In-memory middleware store | For global limits across multiple function instances, add a shared store such as Vercel KV or Upstash Redis before public launch. |
 | SEO URLs | Default fallback is `https://qrserve.app` | Set `VITE_PUBLIC_SITE_URL` to the final Vercel/custom domain before the production build. |
 
@@ -34,7 +34,7 @@ Configure the following values in **Production** and, where appropriate, **Previ
 1. Export the checkpoint or repository to GitHub, then import it into Vercel.
 2. Add the required environment variables. Remove the retired OAuth environment variables after confirming the new credential sign-in screen is live.
 3. In Cloudinary’s **API Keys** page, copy the **API Environment variable**. In Vercel, add it as `CLOUDINARY_URL` for Production and Preview. Do not add it as a `VITE_*` variable and do not commit it to source control. [3]
-4. Redeploy and verify sign-in, restaurant creation, menu image upload, public menu view, QR code scan, and logout.
+4. Redeploy and verify operator sign-in, client-venue setup, menu image upload, public-menu view, QR table-card scan, and logout.
 5. Assign the final domain, set `VITE_PUBLIC_SITE_URL`, redeploy, and validate the canonical/OG URLs before promoting production.
 
 ## References
