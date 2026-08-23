@@ -26,9 +26,12 @@ export type PublicMenuData = {
 };
 
 const menuImage = {
-  paneer: "/manus-storage/marigold-paneer_7a461916.jpg",
-  curry: "/manus-storage/marigold-curry_d631db38.jpg",
-  dessert: "/manus-storage/marigold-dessert_7903ac65.jpg",
+  paneer:
+    "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=1200&q=85",
+  curry:
+    "https://images.unsplash.com/photo-1585937421612-70a008356fbe?auto=format&fit=crop&w=1200&q=85",
+  dessert:
+    "https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=1200&q=85",
 } as const;
 
 /**
