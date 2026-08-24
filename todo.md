@@ -144,5 +144,5 @@
 - [x] Remove temporary verification venue records from the production administrator Client venues directory.
 - [x] Refine the mobile Client venues layout so owner attribution and owner-managed status are compact and easy to scan.
 - [x] Re-verify the cleaned, responsive administrator directory and owner access boundary in production.
-- [ ] Fix sidebar navigation so only the current workspace section is highlighted on mobile and desktop.
-- [ ] Verify corrected active navigation states on the live Client venues, Menu work, Table cards, and Owner activity routes.
+- [x] Fix sidebar navigation so only the current workspace section is highlighted on mobile and desktop.
+- [x] Verify corrected active navigation states on the live Client venues, Menu work, Table cards, and Owner activity routes.
