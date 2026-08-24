@@ -141,6 +141,6 @@
 - [x] Show venues created by approved venue owners in the administrator Client venues dashboard with safe owner attribution.
 - [x] Preserve standard owner isolation while adding administrator-wide venue-list access and regression coverage.
 - [x] Verify the updated Client venues dashboard locally and in production for administrator and standard owner roles.
-- [ ] Remove temporary verification venue records from the production administrator Client venues directory.
-- [ ] Refine the mobile Client venues layout so owner attribution and owner-managed status are compact and easy to scan.
-- [ ] Re-verify the cleaned, responsive administrator directory and owner access boundary in production.
+- [x] Remove temporary verification venue records from the production administrator Client venues directory.
+- [x] Refine the mobile Client venues layout so owner attribution and owner-managed status are compact and easy to scan.
+- [x] Re-verify the cleaned, responsive administrator directory and owner access boundary in production.
