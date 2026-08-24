@@ -355,6 +355,27 @@ export const appRouter = router({
         .where(eq(restaurants.ownerId, ctx.user.id))
         .orderBy(asc(restaurants.createdAt))
     ),
+    adminList: adminProcedure.query(async () =>
+      (await database())
+        .select({
+          id: restaurants.id,
+          ownerId: restaurants.ownerId,
+          name: restaurants.name,
+          slug: restaurants.slug,
+          location: restaurants.location,
+          description: restaurants.description,
+          timezone: restaurants.timezone,
+          logoUrl: restaurants.logoUrl,
+          plan: restaurants.plan,
+          createdAt: restaurants.createdAt,
+          updatedAt: restaurants.updatedAt,
+          ownerName: users.name,
+          ownerEmail: users.email,
+        })
+        .from(restaurants)
+        .leftJoin(users, eq(restaurants.ownerId, users.id))
+        .orderBy(asc(restaurants.createdAt))
+    ),
     get: protectedProcedure
       .input(idInput)
       .query(async ({ ctx, input }) => owned(ctx.user.id, input.id)),

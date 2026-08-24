@@ -215,6 +215,41 @@ describe("credential authentication router", () => {
     expect(mocks.getDb).not.toHaveBeenCalled();
   });
 
+  it("denies standard venue owners access to the administrator client venue directory", async () => {
+    const caller = venueOwnerCaller();
+
+    await expect(caller.restaurant.adminList()).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(mocks.getDb).not.toHaveBeenCalled();
+  });
+
+  it("allows an administrator to receive owner-attributed client venues", async () => {
+    const rows = [
+      {
+        id: 700,
+        ownerId: 9,
+        name: "Marigold Café",
+        slug: "marigold-cafe-test",
+        location: "Bandra West, Mumbai",
+        description: "A verification venue.",
+        timezone: "Asia/Kolkata",
+        logoUrl: null,
+        plan: "FREE",
+        createdAt: new Date("2026-08-24T10:00:00.000Z"),
+        updatedAt: new Date("2026-08-24T10:00:00.000Z"),
+        ownerName: "Venue Owner",
+        ownerEmail: "owner@cafe.com",
+      },
+    ];
+    const orderBy = vi.fn().mockResolvedValue(rows);
+    const leftJoin = vi.fn(() => ({ orderBy }));
+    const from = vi.fn(() => ({ leftJoin }));
+    mocks.getDb.mockResolvedValue({ select: vi.fn(() => ({ from })) });
+
+    await expect(administratorCaller().restaurant.adminList()).resolves.toEqual(rows);
+  });
+
   it("allows an administrator to receive a bounded activity feed", async () => {
     const limit = vi.fn().mockResolvedValue([
       {
