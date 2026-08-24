@@ -156,3 +156,5 @@
 - [x] Use dish-matched food images and verify the expanded demo’s search, filters, private order list, and mobile presentation without order submission or analytics writes.
 - [x] Expand the public QRServe demo menu with realistic vegetarian, non-vegetarian, drinks, popular-dish, and dessert choices.
 - [x] Verify the expanded demo’s search, filters, private order list, and mobile presentation without any order submission or analytics writes.
+- [ ] Replace every repeated or mismatched image in the QRServe demo with a distinct, dish-specific food photograph.
+- [ ] Verify the corrected unique dish images on mobile and live at qrserve-menu.vercel.app/demo.

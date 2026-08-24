@@ -26,13 +26,16 @@ describe("QRServe sales demo menu", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("uses direct, dish-appropriate public image URLs for every sample dish", () => {
+  it("uses a distinct public image URL for every named sample dish", () => {
     const items = demoMenuData.categories.flatMap(category => category.items);
+    const imageUrls = items.map(item => item.imageUrl);
 
-    expect(items.every(item => item.imageUrl?.startsWith("https://images.unsplash.com/"))).toBe(true);
-    expect(items.some(item => item.name === "Butter chicken" && item.imageUrl?.includes("1742599361498"))).toBe(true);
-    expect(items.some(item => item.name === "Chicken dum biryani" && item.imageUrl?.includes("1631515243349"))).toBe(true);
-    expect(items.some(item => item.name === "Mango lassi" && item.imageUrl?.includes("1623065422902"))).toBe(true);
+    expect(items.every(item => item.imageUrl?.startsWith("https://"))).toBe(true);
+    expect(new Set(imageUrls).size).toBe(items.length);
+    expect(items.some(item => item.name === "Butter chicken" && item.imageUrl?.includes("Butter_Chicken"))).toBe(true);
+    expect(items.some(item => item.name === "Chicken dum biryani" && item.imageUrl?.includes("Chicken_biryani"))).toBe(true);
+    expect(items.some(item => item.name === "Kesar badam milk" && item.imageUrl?.includes("Badam_milk"))).toBe(true);
+    expect(items.some(item => item.name === "Gulab jamun" && item.imageUrl?.includes("Gulab_Jamun"))).toBe(true);
   });
 
   it("wires guest-menu section and dish reveals through the reduced-motion-safe helper", async () => {

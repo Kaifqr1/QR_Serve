@@ -25,25 +25,43 @@ export type PublicMenuData = {
   categories: PublicMenuCategory[];
 };
 
+// Each demo card deliberately uses one distinct, named food or drink photograph.
+// Source pages are public Wikimedia Commons image records, selected by dish name.
 const menuImage = {
   butterChicken:
-    "https://images.unsplash.com/photo-1742599361498-79824d24e355?auto=format&fit=crop&w=1200&q=85",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fb/Butter_Chicken%2C_City_Grill_Kottayam.jpg/1280px-Butter_Chicken%2C_City_Grill_Kottayam.jpg",
   paneerTikka:
-    "https://images.unsplash.com/photo-1781332143834-19a40f746cd9?auto=format&fit=crop&w=1200&q=85",
-  chickenTikka:
-    "https://images.unsplash.com/photo-1772730064951-89b427965dbc?auto=format&fit=crop&w=1200&q=85",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Panir_Tikka_Indian_cheese_grilled.jpg/1280px-Panir_Tikka_Indian_cheese_grilled.jpg",
   chickenBiryani:
-    "https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?auto=format&fit=crop&w=1200&q=85",
-  dalMakhani:
-    "https://images.unsplash.com/photo-1697155406121-85aac6236000?auto=format&fit=crop&w=1200&q=85",
+    "https://upload.wikimedia.org/wikipedia/commons/b/b5/Chicken_biryani_02-06-2015_%28India%29.jpg",
   mangoLassi:
-    "https://images.unsplash.com/photo-1623065422902-30a2d299bbe4?auto=format&fit=crop&w=1200&q=85",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Mango_Lassi_.jpg/1280px-Mango_Lassi_.jpg",
+  paneerButterMasala:
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Paneer_butter_masala_2.jpg/1280px-Paneer_butter_masala_2.jpg",
+  dalMakhani:
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Dal_Makhani_01.jpg/1280px-Dal_Makhani_01.jpg",
+  chilliPaneer:
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Paneer_Chilli%2C_Bengaluru_%282026%29_01.jpg/1280px-Paneer_Chilli%2C_Bengaluru_%282026%29_01.jpg",
+  malaiPaneerTikka:
+    "https://upload.wikimedia.org/wikipedia/commons/a/a5/Malai_Paneer_Tikka%2C_PK_007.jpg",
+  kashmiriChickenTikka:
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Chicken_tikka_in_Araku_Valley%2C_Andhra_Pradesh_01.jpg/1280px-Chicken_tikka_in_Araku_Valley%2C_Andhra_Pradesh_01.jpg",
+  chickenTikkaMasala:
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Chicken_Tikka_Masala_on_White_Plate_with_Spoon.jpg/1280px-Chicken_Tikka_Masala_on_White_Plate_with_Spoon.jpg",
+  tandooriChicken:
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Tandoori_chicken_Indian.jpg/1280px-Tandoori_chicken_Indian.jpg",
+  badamMilk:
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Badam_milk.jpg/1280px-Badam_milk.jpg",
+  roseMilk:
+    "https://commons.wikimedia.org/wiki/Special:FilePath/Rosemilk.jpg?width=1200",
   masalaChai:
-    "https://images.unsplash.com/photo-1561336526-2914f13ceb36?auto=format&fit=crop&w=1200&q=85",
-  roseCooler:
-    "https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=1200&q=85",
-  dessert:
-    "https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=1200&q=85",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Masala_Chai.jpg/1280px-Masala_Chai.jpg",
+  rasmalaiMilkCake:
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Rasamalai_Cake.jpg/1280px-Rasamalai_Cake.jpg",
+  pistachioKulfi:
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Kulfi_de_pistatxo.jpg/1280px-Kulfi_de_pistatxo.jpg",
+  gulabJamun:
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Two_Gulab_Jamun_in_a_plate_01.jpg/1280px-Two_Gulab_Jamun_in_a_plate_01.jpg",
 } as const;
 
 /**
@@ -110,7 +128,7 @@ export const demoMenuData: PublicMenuData = {
           name: "Paneer butter masala",
           description: "Soft paneer in a rich tomato-cashew gravy with fresh coriander.",
           price: 390,
-          imageUrl: menuImage.paneerTikka,
+          imageUrl: menuImage.paneerButterMasala,
         },
         {
           id: 90102,
@@ -126,7 +144,7 @@ export const demoMenuData: PublicMenuData = {
           name: "Chilli paneer",
           description: "Crisp paneer tossed with peppers, scallion and a glossy chilli-soy glaze.",
           price: 340,
-          imageUrl: menuImage.paneerTikka,
+          imageUrl: menuImage.chilliPaneer,
         },
         {
           id: 90104,
@@ -134,7 +152,7 @@ export const demoMenuData: PublicMenuData = {
           name: "Malai paneer tikka",
           description: "Cashew cream, fenugreek and a gentle smoky char from the tandoor.",
           price: 420,
-          imageUrl: menuImage.paneerTikka,
+          imageUrl: menuImage.malaiPaneerTikka,
         },
       ],
     },
@@ -149,7 +167,7 @@ export const demoMenuData: PublicMenuData = {
           name: "Kashmiri chicken tikka",
           description: "Yoghurt-marinated chicken with kashmiri chilli, lemon and pickled onion.",
           price: 460,
-          imageUrl: menuImage.chickenTikka,
+          imageUrl: menuImage.kashmiriChickenTikka,
         },
         {
           id: 90202,
@@ -157,7 +175,7 @@ export const demoMenuData: PublicMenuData = {
           name: "Chicken tikka masala",
           description: "Tandoor chicken folded into a creamy tomato gravy with fresh mint.",
           price: 490,
-          imageUrl: menuImage.chickenTikka,
+          imageUrl: menuImage.chickenTikkaMasala,
         },
         {
           id: 90203,
@@ -165,7 +183,7 @@ export const demoMenuData: PublicMenuData = {
           name: "Tandoori chicken",
           description: "Half chicken, roasted spices, charred lemon and coriander-mint chutney.",
           price: 540,
-          imageUrl: menuImage.chickenTikka,
+          imageUrl: menuImage.tandooriChicken,
         },
       ],
     },
@@ -177,18 +195,18 @@ export const demoMenuData: PublicMenuData = {
         {
           id: 90301,
           categoryId: 903,
-          name: "Mango lassi",
-          description: "Thick yoghurt, ripe mango and cardamom, served ice cold.",
-          price: 190,
-          imageUrl: menuImage.mangoLassi,
+          name: "Kesar badam milk",
+          description: "Chilled almond milk, saffron and cardamom with a delicate nutty finish.",
+          price: 180,
+          imageUrl: menuImage.badamMilk,
         },
         {
           id: 90302,
           categoryId: 903,
-          name: "Rose lime cooler",
-          description: "Rose syrup, lime, soda and crushed ice with a floral lift.",
+          name: "Rose milk",
+          description: "Chilled rose syrup and milk with a floral, creamy finish.",
           price: 210,
-          imageUrl: menuImage.roseCooler,
+          imageUrl: menuImage.roseMilk,
         },
         {
           id: 90303,
@@ -208,18 +226,18 @@ export const demoMenuData: PublicMenuData = {
         {
           id: 90401,
           categoryId: 904,
-          name: "Saffron milk cake",
-          description: "Tres leches sponge, saffron cream, pistachio and rose petal.",
+          name: "Rasmalai milk cake",
+          description: "Milk-soaked sponge, saffron cream, pistachio and rose petal.",
           price: 250,
-          imageUrl: menuImage.dessert,
+          imageUrl: menuImage.rasmalaiMilkCake,
         },
         {
           id: 90402,
           categoryId: 904,
-          name: "Cardamom kulfi",
+          name: "Pistachio kulfi",
           description: "Slow-set milk, almond praline and a pinch of sea salt.",
           price: 220,
-          imageUrl: menuImage.dessert,
+          imageUrl: menuImage.pistachioKulfi,
         },
         {
           id: 90403,
@@ -227,7 +245,7 @@ export const demoMenuData: PublicMenuData = {
           name: "Gulab jamun",
           description: "Warm milk dumplings in rose-cardamom syrup with pistachio.",
           price: 180,
-          imageUrl: menuImage.dessert,
+          imageUrl: menuImage.gulabJamun,
         },
       ],
     },
