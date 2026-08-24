@@ -67,7 +67,8 @@ type OwnerActivityEventType =
   | "CATEGORY_DELETED"
   | "MENU_ITEM_CREATED"
   | "MENU_ITEM_UPDATED"
-  | "MENU_ITEM_DELETED";
+  | "MENU_ITEM_DELETED"
+  | "ADMINISTRATOR_REMOVED_VENUE";
 
 async function database() {
   const db = await getDb();
@@ -376,6 +377,29 @@ export const appRouter = router({
         .leftJoin(users, eq(restaurants.ownerId, users.id))
         .orderBy(asc(restaurants.createdAt))
     ),
+    adminDelete: adminProcedure
+      .input(idInput)
+      .mutation(async ({ input }) => {
+        const db = await database();
+        const current = await db
+          .select()
+          .from(restaurants)
+          .where(eq(restaurants.id, input.id))
+          .limit(1);
+        if (!current[0])
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Client venue not found.",
+          });
+        await db.delete(restaurants).where(eq(restaurants.id, input.id));
+        await recordOwnerActivity(db, {
+          ownerId: current[0].ownerId,
+          restaurantId: input.id,
+          eventType: "ADMINISTRATOR_REMOVED_VENUE",
+          summary: `Administrator removed venue “${current[0].name}”.`,
+        });
+        return { success: true } as const;
+      }),
     get: protectedProcedure
       .input(idInput)
       .query(async ({ ctx, input }) => owned(ctx.user.id, input.id)),

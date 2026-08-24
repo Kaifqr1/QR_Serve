@@ -81,6 +81,13 @@ export default function Restaurants() {
     },
     onError: error => toast.error(error.message),
   });
+  const administratorRemove = trpc.restaurant.adminDelete.useMutation({
+    onSuccess: () => {
+      refreshVenueLists();
+      toast.success("Client venue removed from the administrator directory.");
+    },
+    onError: error => toast.error(error.message),
+  });
 
   const resetForm = () => {
     setShowForm(false);
@@ -199,12 +206,12 @@ export default function Restaurants() {
                         <p className="eyebrow text-[#8b7560]">
                           {isAdmin && !isOwnVenue ? "Venue owner account" : "QRServe managed venue"}
                         </p>
-                        <h2 className="mt-3 truncate font-display text-3xl text-[#201d19]">{venue.name}</h2>
+                        <h2 className="mt-3 truncate font-display text-[2rem] leading-tight text-[#201d19] sm:text-3xl">{venue.name}</h2>
                         <p className="mt-2 flex items-center gap-2 text-sm text-[#70675d]">
                           <MapPin className="h-4 w-4 shrink-0 text-[#ed5739]" />{venue.location}
                         </p>
                       </div>
-                      {isOwnVenue && (
+                      {isOwnVenue ? (
                         <button
                           onClick={() => {
                             if (confirm(`Remove ${venue.name}? This also removes its menu and analytics.`)) {
@@ -216,20 +223,33 @@ export default function Restaurants() {
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
-                      )}
+                      ) : isAdmin ? (
+                        <button
+                          onClick={() => {
+                            if (confirm(`Remove ${venue.name}? This permanently removes its menu and analytics.`)) {
+                              administratorRemove.mutate({ id: venue.id });
+                            }
+                          }}
+                          aria-label={`Remove ${venue.name} as administrator`}
+                          disabled={administratorRemove.isPending}
+                          className="rounded-xl p-2 text-[#9a8d7c] transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      ) : null}
                     </div>
 
                     {isAdmin && (
-                      <div className="mt-5 flex items-center gap-2 rounded-2xl bg-[#f1e8dc] px-3 py-2.5 text-sm text-[#5e554b]">
+                      <div className="mt-4 flex min-w-0 items-start gap-2 text-sm text-[#70675d]">
                         <UserRound className="h-4 w-4 shrink-0 text-[#8b7560]" />
-                        <span className="min-w-0 truncate">
-                          <strong className="font-semibold text-[#3b342d]">{venue.ownerName}</strong>
-                          {venue.ownerEmail ? ` · ${venue.ownerEmail}` : ""}
-                        </span>
+                        <div className="min-w-0 leading-5">
+                          <p><span className="text-[#8b7560]">Owner:</span> <strong className="font-semibold text-[#3b342d]">{venue.ownerName}</strong></p>
+                          {venue.ownerEmail && <p className="truncate text-xs text-[#837867]">{venue.ownerEmail}</p>}
+                        </div>
                       </div>
                     )}
 
-                    <p className="mt-5 min-h-12 text-sm leading-6 text-[#70675d]">
+                    <p className="mt-5 text-sm leading-6 text-[#70675d] sm:min-h-12">
                       {venue.description || "No public description yet. Add one before the table card is printed."}
                     </p>
 
@@ -263,9 +283,9 @@ export default function Restaurants() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="mt-6 flex items-center justify-between gap-3 rounded-2xl border border-[#e4ddd2] bg-white/70 px-4 py-3">
-                        <p className="text-xs leading-5 text-[#70675d]">
-                          Owner-managed venue. Its menu and details remain private to its registered owner.
+                      <div className="mt-5 flex items-center justify-between gap-3 border-t border-[#e8e0d5] pt-4">
+                        <p className="max-w-[13rem] text-xs leading-5 text-[#70675d] sm:max-w-none">
+                          Owner-managed. Editing remains with its registered owner.
                         </p>
                         <Button
                           onClick={() => setLocation("/app/activity")}

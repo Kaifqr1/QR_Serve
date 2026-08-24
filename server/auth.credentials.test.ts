@@ -224,6 +224,15 @@ describe("credential authentication router", () => {
     expect(mocks.getDb).not.toHaveBeenCalled();
   });
 
+  it("denies standard venue owners access to administrator venue cleanup", async () => {
+    const caller = venueOwnerCaller();
+
+    await expect(caller.restaurant.adminDelete({ id: 700 })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(mocks.getDb).not.toHaveBeenCalled();
+  });
+
   it("allows an administrator to receive owner-attributed client venues", async () => {
     const rows = [
       {
@@ -248,6 +257,46 @@ describe("credential authentication router", () => {
     mocks.getDb.mockResolvedValue({ select: vi.fn(() => ({ from })) });
 
     await expect(administratorCaller().restaurant.adminList()).resolves.toEqual(rows);
+  });
+
+  it("allows an administrator to remove a venue and records the cleanup", async () => {
+    const venue = {
+      id: 700,
+      ownerId: 9,
+      name: "QRServe Verification Café",
+      slug: "qrserve-verification-cafe",
+      location: "Bandra West, Mumbai",
+      description: null,
+      timezone: "Asia/Kolkata",
+      logoUrl: null,
+      plan: "FREE" as const,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const limit = vi.fn().mockResolvedValue([venue]);
+    const values = vi.fn().mockResolvedValue([{ insertId: 1 }]);
+    const removeWhere = vi.fn().mockResolvedValue(undefined);
+    mocks.getDb.mockResolvedValue({
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({ where: vi.fn(() => ({ limit })) })),
+      })),
+      delete: vi.fn(() => ({ where: removeWhere })),
+      insert: vi.fn(() => ({ values })),
+      execute: vi.fn().mockResolvedValue(undefined),
+    });
+
+    await expect(administratorCaller().restaurant.adminDelete({ id: 700 })).resolves.toEqual({
+      success: true,
+    });
+    expect(removeWhere).toHaveBeenCalledTimes(1);
+    expect(values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownerId: 9,
+        restaurantId: 700,
+        eventType: "ADMINISTRATOR_REMOVED_VENUE",
+        summary: "Administrator removed venue “QRServe Verification Café”.",
+      })
+    );
   });
 
   it("allows an administrator to receive a bounded activity feed", async () => {
