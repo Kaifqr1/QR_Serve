@@ -1342,18 +1342,13 @@ function createQrServeApp() {
   configureSecurity(app);
   app.use(express.json({ limit: BODY_SIZE_LIMIT, strict: true }));
   app.use(express.urlencoded({ limit: BODY_SIZE_LIMIT, extended: false }));
-  app.get("/api/index", (req, res, next) => {
-    if (req.query.crawler === "robots") {
-      res.setHeader("Cache-Control", "public, max-age=300");
-      res.type("text/plain").send(robotsText);
-      return;
-    }
-    if (req.query.crawler === "sitemap") {
-      res.setHeader("Cache-Control", "public, max-age=300");
-      res.type("application/xml").send(sitemapXml);
-      return;
-    }
-    next();
+  app.get("/robots.txt", (_req, res) => {
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.type("text/plain").send(robotsText);
+  });
+  app.get("/sitemap.xml", (_req, res) => {
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.type("application/xml").send(sitemapXml);
   });
   app.use("/api/trpc/auth.signIn", authRateLimiter);
   app.use("/api/trpc/auth.register", authRateLimiter);
