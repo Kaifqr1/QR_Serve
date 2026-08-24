@@ -9,6 +9,8 @@
     }
   },
   "routes": [
+    { "src": "/robots.txt", "dest": "/api/index?crawler=robots" },
+    { "src": "/sitemap.xml", "dest": "/api/index?crawler=sitemap" },
     { "src": "/api/(.*)", "dest": "/api/index" },
     { "src": "/manus-storage/(.*)", "dest": "/api/index" },
     { "handle": "filesystem" },

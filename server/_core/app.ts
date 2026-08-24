@@ -3,6 +3,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { robotsText, sitemapXml } from "./seo";
 import { apiRateLimiter, authRateLimiter, BODY_SIZE_LIMIT, configureSecurity, securityErrorHandler } from "../security";
 
 /**
@@ -15,6 +16,19 @@ export function createQrServeApp() {
   configureSecurity(app);
   app.use(express.json({ limit: BODY_SIZE_LIMIT, strict: true }));
   app.use(express.urlencoded({ limit: BODY_SIZE_LIMIT, extended: false }));
+  app.get("/api/index", (req, res, next) => {
+    if (req.query.crawler === "robots") {
+      res.setHeader("Cache-Control", "public, max-age=300");
+      res.type("text/plain").send(robotsText);
+      return;
+    }
+    if (req.query.crawler === "sitemap") {
+      res.setHeader("Cache-Control", "public, max-age=300");
+      res.type("application/xml").send(sitemapXml);
+      return;
+    }
+    next();
+  });
   app.use("/api/trpc/auth.signIn", authRateLimiter);
   app.use("/api/trpc/auth.register", authRateLimiter);
   app.use("/api/trpc", apiRateLimiter);

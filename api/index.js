@@ -1312,12 +1312,49 @@ async function createContext(opts) {
   };
 }
 
+// server/_core/seo.ts
+var PUBLIC_SITE_URL = "https://qrserve-menu.vercel.app";
+var robotsText = `User-agent: *
+Allow: /
+Disallow: /app
+Disallow: /sign-in
+
+Sitemap: ${PUBLIC_SITE_URL}/sitemap.xml
+`;
+var sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${PUBLIC_SITE_URL}/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${PUBLIC_SITE_URL}/demo</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+</urlset>
+`;
+
 // server/_core/app.ts
 function createQrServeApp() {
   const app = express();
   configureSecurity(app);
   app.use(express.json({ limit: BODY_SIZE_LIMIT, strict: true }));
   app.use(express.urlencoded({ limit: BODY_SIZE_LIMIT, extended: false }));
+  app.get("/api/index", (req, res, next) => {
+    if (req.query.crawler === "robots") {
+      res.setHeader("Cache-Control", "public, max-age=300");
+      res.type("text/plain").send(robotsText);
+      return;
+    }
+    if (req.query.crawler === "sitemap") {
+      res.setHeader("Cache-Control", "public, max-age=300");
+      res.type("application/xml").send(sitemapXml);
+      return;
+    }
+    next();
+  });
   app.use("/api/trpc/auth.signIn", authRateLimiter);
   app.use("/api/trpc/auth.register", authRateLimiter);
   app.use("/api/trpc", apiRateLimiter);

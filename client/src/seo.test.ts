@@ -28,6 +28,8 @@ describe("QRServe public search readiness", () => {
     const config = await readFile(new URL("../../vercel.json", import.meta.url), "utf8");
 
     expect(config).toContain('"handle": "filesystem"');
+    expect(config).toContain('"src": "/robots.txt", "dest": "/api/index?crawler=robots"');
+    expect(config).toContain('"src": "/sitemap.xml", "dest": "/api/index?crawler=sitemap"');
     expect(config).toContain('"src": "/(.*)", "dest": "/index.html"');
   });
 });
