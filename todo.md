@@ -152,7 +152,7 @@
 - [x] Prepare a non-duplicative QRServe LinkedIn follow-up caption, hashtags, and posting recommendation after the recent launch post.
 - [x] Change QRServe’s Vercel public alias to qrserve-menu.vercel.app and verify the live routes.
 - [x] Update the prepared QRServe LinkedIn caption with the verified final public URL.
-- [ ] Expand the public QRServe demo menu with realistic vegetarian, non-vegetarian, drinks, popular-dish, and dessert choices.
-- [ ] Use dish-matched food images and verify the expanded demo’s search, filters, private order list, and mobile presentation without order submission or analytics writes.
-- [ ] Expand the public QRServe demo menu with realistic vegetarian, non-vegetarian, drinks, popular-dish, and dessert choices.
-- [ ] Verify the expanded demo’s search, filters, private order list, and mobile presentation without any order submission or analytics writes.
+- [x] Expand the public QRServe demo menu with realistic vegetarian, non-vegetarian, drinks, popular-dish, and dessert choices.
+- [x] Use dish-matched food images and verify the expanded demo’s search, filters, private order list, and mobile presentation without order submission or analytics writes.
+- [x] Expand the public QRServe demo menu with realistic vegetarian, non-vegetarian, drinks, popular-dish, and dessert choices.
+- [x] Verify the expanded demo’s search, filters, private order list, and mobile presentation without any order submission or analytics writes.
