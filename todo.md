@@ -158,3 +158,7 @@
 - [x] Verify the expanded demo’s search, filters, private order list, and mobile presentation without any order submission or analytics writes.
 - [x] Replace every repeated or mismatched image in the QRServe demo with a distinct, dish-specific food photograph.
 - [x] Verify the corrected unique dish images on mobile and live at qrserve-menu.vercel.app/demo.
+- [x] Compare OddMenu and QRServe public experiences and identify QRServe’s strongest differentiators and improvement opportunities.
+- [x] Compare OddMenu and QRServe public experiences and identify QRServe’s strongest differentiators and improvement opportunities.
+- [x] Add a premium, service-led FAQ section to the QRServe main page with accessible expand/collapse behavior.
+- [x] Verify the new FAQ section on desktop and phone layouts, plus focused regression checks.

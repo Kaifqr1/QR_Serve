@@ -1,5 +1,11 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { scrollReveal } from "@/lib/scrollReveal";
 import {
   ArrowRight,
@@ -38,6 +44,39 @@ export const serviceSteps = [
   },
 ];
 
+export const faqItems = [
+  {
+    question: "What does QRServe set up at my venue?",
+    answer:
+      "We turn your existing menu into a guest-friendly digital menu, organise dishes and prices, prepare your QR table cards, and help make sure the final scan feels right for your venue.",
+  },
+  {
+    question: "Can I update prices, dishes, or availability later?",
+    answer:
+      "Yes. Send the change to your QRServe contact and we will keep the live menu current—whether it is a new dish, a revised price, a better food photo, or an item that is temporarily unavailable.",
+  },
+  {
+    question: "Do my guests need to download an app?",
+    answer:
+      "No. Guests scan the table QR code with their phone camera and open the menu directly in their browser. There is nothing to install and no guest account is required.",
+  },
+  {
+    question: "Will you also create the QR cards for my tables?",
+    answer:
+      "Yes. QRServe prepares a clean table-card design linked to your live menu, ready to print and place at your tables, counter, or takeaway window.",
+  },
+  {
+    question: "Can you work from my current paper or PDF menu?",
+    answer:
+      "Absolutely. Bring your current menu, price list, or PDF. We organise it into a clearer mobile experience and can help identify the information or photography that will make it easier for guests to choose.",
+  },
+  {
+    question: "How do I get started?",
+    answer:
+      "Start with a venue visit or menu review. We will understand your current setup, prepare the digital menu and QR cards, then make the final guest experience ready to scan.",
+  },
+];
+
 export default function Home() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
@@ -66,6 +105,9 @@ export default function Home() {
           </a>
           <a href="#built-for-service" className="transition hover:text-white">
             For local venues
+          </a>
+          <a href="#questions" className="transition hover:text-white">
+            Questions
           </a>
           <button
             onClick={() => setLocation("/demo")}
@@ -288,6 +330,52 @@ export default function Home() {
                 </div>
               </motion.div>
             </div>
+          </div>
+        </section>
+
+        <section id="questions" className="bg-[#e9ded0] py-20 text-[#201d19] sm:py-28">
+          <div className="mx-auto grid max-w-7xl gap-12 px-5 sm:px-8 lg:grid-cols-[0.76fr_1.24fr] lg:px-10">
+            <motion.div {...reveal()} className="lg:pr-12">
+              <p className="eyebrow border-[#cbbbaa] text-[#7c6a58]">
+                Clear answers, before we begin
+              </p>
+              <h2 className="mt-4 font-display text-5xl leading-[0.96] tracking-[-0.05em] sm:text-6xl">
+                The practical details, handled.
+              </h2>
+              <p className="mt-6 max-w-md text-base leading-7 text-[#62574d]">
+                QRServe is a local service, so you should always know what is
+                included, how updates work, and what your guests will experience
+                after they scan.
+              </p>
+              <button
+                onClick={() => setLocation("/demo")}
+                className="mt-8 inline-flex items-center font-semibold text-[#201d19] underline decoration-[#ed5739] decoration-2 underline-offset-4 transition hover:text-[#ed5739]"
+              >
+                Explore the guest demo <ArrowRight className="ml-2 h-4 w-4" />
+              </button>
+            </motion.div>
+
+            <motion.div
+              {...reveal(0.08)}
+              className="rounded-[2rem] border border-[#cbbbaa] bg-[#f8f3ea] p-2 shadow-[0_24px_65px_rgba(65,44,29,0.12)] sm:p-3"
+            >
+              <Accordion type="single" collapsible className="w-full">
+                {faqItems.map((item, index) => (
+                  <AccordionItem
+                    key={item.question}
+                    value={`faq-${index + 1}`}
+                    className="border-[#ded4c8] px-4 sm:px-6"
+                  >
+                    <AccordionTrigger className="py-6 font-display text-xl leading-tight tracking-[-0.02em] text-[#201d19] no-underline hover:no-underline sm:text-2xl">
+                      <span className="pr-4">{item.question}</span>
+                    </AccordionTrigger>
+                    <AccordionContent className="max-w-2xl pb-6 text-sm leading-7 text-[#6d655c] sm:text-base">
+                      {item.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </motion.div>
           </div>
         </section>
       </main>
