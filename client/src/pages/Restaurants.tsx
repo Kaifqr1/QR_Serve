@@ -1,5 +1,16 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import DashboardLayout from "@/components/DashboardLayout";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -224,18 +235,34 @@ export default function Restaurants() {
                           <Trash2 className="h-4 w-4" />
                         </button>
                       ) : isAdmin ? (
-                        <button
-                          onClick={() => {
-                            if (confirm(`Remove ${venue.name}? This permanently removes its menu and analytics.`)) {
-                              administratorRemove.mutate({ id: venue.id });
-                            }
-                          }}
-                          aria-label={`Remove ${venue.name} as administrator`}
-                          disabled={administratorRemove.isPending}
-                          className="rounded-xl p-2 text-[#9a8d7c] transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button
+                              aria-label={`Remove ${venue.name} as administrator`}
+                              disabled={administratorRemove.isPending}
+                              className="rounded-xl p-2 text-[#9a8d7c] transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="rounded-3xl border-[#e4ddd2] bg-[#fbf9f5] text-[#201d19]">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className="font-display text-3xl">Remove {venue.name}?</AlertDialogTitle>
+                              <AlertDialogDescription className="leading-6 text-[#70675d]">
+                                This permanently removes the venue, its menu, and associated analytics. Use this only for a venue that should no longer remain in QRServe.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel className="rounded-full border-[#d8cfc3] bg-transparent">Keep venue</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => administratorRemove.mutate({ id: venue.id })}
+                                className="rounded-full bg-[#c6422c] text-white hover:bg-[#a93422]"
+                              >
+                                Remove venue
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       ) : null}
                     </div>
 
