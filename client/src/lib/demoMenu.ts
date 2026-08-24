@@ -1,3 +1,5 @@
+export type DietaryLabel = "Vegetarian" | "Non-vegetarian" | "Spicy";
+
 export type PublicMenuItem = {
   id: number;
   categoryId: number;
@@ -5,6 +7,7 @@ export type PublicMenuItem = {
   description: string | null;
   price: number;
   imageUrl: string | null;
+  dietary?: DietaryLabel[];
 };
 
 export type PublicMenuCategory = {
@@ -21,6 +24,8 @@ export type PublicMenuData = {
     location: string;
     description: string | null;
     logoUrl: string | null;
+    hours?: string;
+    serviceNote?: string;
   };
   categories: PublicMenuCategory[];
 };
@@ -76,6 +81,8 @@ export const demoMenuData: PublicMenuData = {
     location: "Bandra West · Mumbai",
     description: "Modern Indian kitchen · QRServe showcase menu",
     logoUrl: null,
+    hours: "Open daily · 12:00 PM – 11:30 PM",
+    serviceNote: "Dine-in · Takeaway · Vegetarian-friendly",
   },
   categories: [
     {
@@ -90,6 +97,7 @@ export const demoMenuData: PublicMenuData = {
           description: "Charred chicken in a silky tomato makhani, finished with butter and kasuri methi.",
           price: 520,
           imageUrl: menuImage.butterChicken,
+          dietary: ["Non-vegetarian"],
         },
         {
           id: 90002,
@@ -98,6 +106,7 @@ export const demoMenuData: PublicMenuData = {
           description: "Cottage cheese, peppers and onion with smoky tandoor char and mint chutney.",
           price: 410,
           imageUrl: menuImage.paneerTikka,
+          dietary: ["Vegetarian"],
         },
         {
           id: 90003,
@@ -106,6 +115,7 @@ export const demoMenuData: PublicMenuData = {
           description: "Fragrant basmati, slow-cooked chicken, saffron and crisp fried onion.",
           price: 480,
           imageUrl: menuImage.chickenBiryani,
+          dietary: ["Non-vegetarian"],
         },
         {
           id: 90004,
@@ -114,6 +124,7 @@ export const demoMenuData: PublicMenuData = {
           description: "Chilled Alphonso mango, yoghurt and a whisper of cardamom.",
           price: 190,
           imageUrl: menuImage.mangoLassi,
+          dietary: ["Vegetarian"],
         },
       ],
     },
@@ -129,6 +140,7 @@ export const demoMenuData: PublicMenuData = {
           description: "Soft paneer in a rich tomato-cashew gravy with fresh coriander.",
           price: 390,
           imageUrl: menuImage.paneerButterMasala,
+          dietary: ["Vegetarian"],
         },
         {
           id: 90102,
@@ -137,6 +149,7 @@ export const demoMenuData: PublicMenuData = {
           description: "Overnight lentils, cultured butter, cream and a slow ginger finish.",
           price: 360,
           imageUrl: menuImage.dalMakhani,
+          dietary: ["Vegetarian"],
         },
         {
           id: 90103,
@@ -145,6 +158,7 @@ export const demoMenuData: PublicMenuData = {
           description: "Crisp paneer tossed with peppers, scallion and a glossy chilli-soy glaze.",
           price: 340,
           imageUrl: menuImage.chilliPaneer,
+          dietary: ["Vegetarian", "Spicy"],
         },
         {
           id: 90104,
@@ -153,6 +167,7 @@ export const demoMenuData: PublicMenuData = {
           description: "Cashew cream, fenugreek and a gentle smoky char from the tandoor.",
           price: 420,
           imageUrl: menuImage.malaiPaneerTikka,
+          dietary: ["Vegetarian"],
         },
       ],
     },
@@ -168,6 +183,7 @@ export const demoMenuData: PublicMenuData = {
           description: "Yoghurt-marinated chicken with kashmiri chilli, lemon and pickled onion.",
           price: 460,
           imageUrl: menuImage.kashmiriChickenTikka,
+          dietary: ["Non-vegetarian", "Spicy"],
         },
         {
           id: 90202,
@@ -176,6 +192,7 @@ export const demoMenuData: PublicMenuData = {
           description: "Tandoor chicken folded into a creamy tomato gravy with fresh mint.",
           price: 490,
           imageUrl: menuImage.chickenTikkaMasala,
+          dietary: ["Non-vegetarian"],
         },
         {
           id: 90203,
@@ -184,6 +201,7 @@ export const demoMenuData: PublicMenuData = {
           description: "Half chicken, roasted spices, charred lemon and coriander-mint chutney.",
           price: 540,
           imageUrl: menuImage.tandooriChicken,
+          dietary: ["Non-vegetarian", "Spicy"],
         },
       ],
     },
@@ -199,6 +217,7 @@ export const demoMenuData: PublicMenuData = {
           description: "Chilled almond milk, saffron and cardamom with a delicate nutty finish.",
           price: 180,
           imageUrl: menuImage.badamMilk,
+          dietary: ["Vegetarian"],
         },
         {
           id: 90302,
@@ -207,6 +226,7 @@ export const demoMenuData: PublicMenuData = {
           description: "Chilled rose syrup and milk with a floral, creamy finish.",
           price: 210,
           imageUrl: menuImage.roseMilk,
+          dietary: ["Vegetarian"],
         },
         {
           id: 90303,
@@ -215,6 +235,7 @@ export const demoMenuData: PublicMenuData = {
           description: "Slow-brewed tea with ginger, cardamom, clove and steamed milk.",
           price: 120,
           imageUrl: menuImage.masalaChai,
+          dietary: ["Vegetarian"],
         },
       ],
     },
@@ -230,6 +251,7 @@ export const demoMenuData: PublicMenuData = {
           description: "Milk-soaked sponge, saffron cream, pistachio and rose petal.",
           price: 250,
           imageUrl: menuImage.rasmalaiMilkCake,
+          dietary: ["Vegetarian"],
         },
         {
           id: 90402,
@@ -238,6 +260,7 @@ export const demoMenuData: PublicMenuData = {
           description: "Slow-set milk, almond praline and a pinch of sea salt.",
           price: 220,
           imageUrl: menuImage.pistachioKulfi,
+          dietary: ["Vegetarian"],
         },
         {
           id: 90403,
@@ -246,6 +269,7 @@ export const demoMenuData: PublicMenuData = {
           description: "Warm milk dumplings in rose-cardamom syrup with pistachio.",
           price: 180,
           imageUrl: menuImage.gulabJamun,
+          dietary: ["Vegetarian"],
         },
       ],
     },

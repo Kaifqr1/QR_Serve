@@ -20,4 +20,12 @@ describe("QRServe local service positioning", () => {
       "qr cards"
     );
   });
+
+  it("offers a professional email route for venue setup enquiries", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const source = await readFile(new URL("./Home.tsx", import.meta.url), "utf8");
+
+    expect(source).toContain("mailto:Kaif.qr1@gmail.com");
+    expect(source).toContain("Plan setup by email");
+  });
 });

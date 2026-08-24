@@ -10,6 +10,7 @@ import { scrollReveal } from "@/lib/scrollReveal";
 import {
   ArrowRight,
   Check,
+  Mail,
   MapPin,
   QrCode,
   ScanLine,
@@ -22,6 +23,9 @@ import { useState } from "react";
 
 const heroImage =
   "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1800&q=88";
+
+const setupEnquiryUrl =
+  "mailto:Kaif.qr1@gmail.com?subject=QRServe%20venue%20setup%20enquiry&body=Hello%20QRServe%2C%0A%0AI%20would%20like%20to%20discuss%20a%20digital%20menu%20and%20QR%20table-card%20setup%20for%20my%20venue.%0A%0AVenue%20name%3A%0ALocation%3A%0AType%20of%20venue%3A%0A";
 
 export const serviceSteps = [
   {
@@ -142,9 +146,9 @@ export default function Home() {
               for every table.
             </h1>
             <p className="mt-7 max-w-md text-base leading-7 text-[#c9c1b5] sm:text-lg">
-              QRServe is a hands-on local service for cafés and restaurants. We
-              visit your venue, build the menu, print the QR cards, and keep
-              everything current.
+              QRServe is a hands-on local restaurant QR menu service for cafés
+              and restaurants. We visit your venue, build the digital menu,
+              print the QR cards, and keep everything current.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <a
@@ -321,12 +325,12 @@ export default function Home() {
                       guest-ready scan.
                     </p>
                   </div>
-                  <Button
-                    onClick={openServiceDesk}
-                    className="rounded-full bg-[#ed5739] text-white hover:bg-[#d94830]"
+                  <a
+                    href={setupEnquiryUrl}
+                    className="inline-flex h-10 items-center justify-center rounded-full bg-[#ed5739] px-5 text-sm font-semibold text-white transition hover:bg-[#d94830] active:scale-[0.97]"
                   >
-                    Open service desk <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
+                    Plan setup by email <Mail className="ml-2 h-4 w-4" />
+                  </a>
                 </div>
               </motion.div>
             </div>
@@ -380,8 +384,17 @@ export default function Home() {
         </section>
       </main>
       <footer className="border-t border-[#322e29] px-5 py-8 text-center text-xs text-[#a79e91]">
-        QRServe · Local digital-menu setup and maintenance for cafés and
-        restaurants.
+        <p>
+          QRServe · Local digital-menu setup and maintenance for cafés and
+          restaurants.
+        </p>
+        <a
+          href={setupEnquiryUrl}
+          className="mt-2 inline-flex items-center gap-1.5 font-semibold text-[#d8ccbb] transition hover:text-white"
+        >
+          <Mail className="h-3.5 w-3.5" />
+          Kaif.qr1@gmail.com
+        </a>
       </footer>
     </div>
   );

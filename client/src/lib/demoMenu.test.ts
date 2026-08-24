@@ -38,6 +38,17 @@ describe("QRServe sales demo menu", () => {
     expect(items.some(item => item.name === "Gulab jamun" && item.imageUrl?.includes("Gulab_Jamun"))).toBe(true);
   });
 
+  it("includes guest-friendly venue details and dietary labels in the showcase", () => {
+    const items = demoMenuData.categories.flatMap(category => category.items);
+
+    expect(demoMenuData.restaurant.hours).toContain("Open daily");
+    expect(demoMenuData.restaurant.serviceNote).toContain("Dine-in");
+    expect(items.every(item => item.dietary && item.dietary.length > 0)).toBe(true);
+    expect(items.some(item => item.dietary?.includes("Vegetarian"))).toBe(true);
+    expect(items.some(item => item.dietary?.includes("Non-vegetarian"))).toBe(true);
+    expect(items.some(item => item.dietary?.includes("Spicy"))).toBe(true);
+  });
+
   it("wires guest-menu section and dish reveals through the reduced-motion-safe helper", async () => {
     const source = await readFile(
       new URL("../pages/PublicMenu.tsx", import.meta.url),

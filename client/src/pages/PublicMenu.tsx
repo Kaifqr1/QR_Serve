@@ -7,7 +7,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { type PublicMenuData } from "@/lib/demoMenu";
+import { type DietaryLabel, type PublicMenuData } from "@/lib/demoMenu";
 import {
   addToGuestOrder,
   guestOrderItemCount,
@@ -22,6 +22,8 @@ import { trpc } from "@/lib/trpc";
 import {
   Check,
   Eye,
+  Flame,
+  Leaf,
   MapPin,
   Minus,
   Plus,
@@ -199,6 +201,34 @@ export function GuestMenu({
           </motion.div>
         )}
 
+        {(restaurant.hours || restaurant.serviceNote) && (
+          <motion.section
+            {...reveal(0.07, 12)}
+            aria-label="Venue information"
+            className="mb-6 overflow-hidden rounded-2xl border border-[#ded3c5] bg-[#fbf9f5] shadow-[0_12px_32px_rgba(57,42,26,0.05)]"
+          >
+            <div className="grid gap-px bg-[#ded3c5] sm:grid-cols-[0.84fr_1.16fr]">
+              <div className="bg-[#201d19] px-5 py-5 text-[#f8f3ea]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#d8ccbb]">
+                  At the venue
+                </p>
+                <p className="mt-2 font-display text-2xl">
+                  The details that help guests decide.
+                </p>
+              </div>
+              <div className="flex flex-col justify-center gap-2 bg-[#fbf9f5] px-5 py-5 text-sm text-[#65594e] sm:px-7">
+                {restaurant.hours && (
+                  <p className="flex items-center gap-2 font-semibold text-[#2b241f]">
+                    <span className="h-2 w-2 rounded-full bg-[#ed5739]" />
+                    {restaurant.hours}
+                  </p>
+                )}
+                {restaurant.serviceNote && <p>{restaurant.serviceNote}</p>}
+              </div>
+            </div>
+          </motion.section>
+        )}
+
         <div className="sticky top-0 z-20 -mx-5 border-b border-[#e5ddd2] bg-[#f6f2eb]/95 px-5 py-4 backdrop-blur sm:-mx-8 sm:px-8">
           <div className="flex flex-col gap-3 md:flex-row">
             <div className="relative flex-1">
@@ -301,6 +331,13 @@ export function GuestMenu({
                                 {formatPrice(item.price)}
                               </span>
                             </div>
+                            {item.dietary && item.dietary.length > 0 && (
+                              <div className="mt-3 flex flex-wrap gap-1.5">
+                                {item.dietary.map(label => (
+                                  <DietaryBadge key={label} label={label} />
+                                ))}
+                              </div>
+                            )}
                             {item.description && (
                               <p className="mt-3 text-sm leading-6 text-[#746b60]">
                                 {item.description}
@@ -368,6 +405,37 @@ export function GuestMenu({
           : "Powered by QRServe"}
       </footer>
     </div>
+  );
+}
+
+function DietaryBadge({ label }: { label: DietaryLabel }) {
+  const styles = {
+    Vegetarian: {
+      className: "border-[#b5d7be] bg-[#edf8ee] text-[#28643b]",
+      icon: Leaf,
+      text: "Veg",
+    },
+    "Non-vegetarian": {
+      className: "border-[#e9c5bb] bg-[#fff0ea] text-[#a23b28]",
+      icon: UtensilsCrossed,
+      text: "Non-veg",
+    },
+    Spicy: {
+      className: "border-[#eed1ae] bg-[#fff5e6] text-[#a45a17]",
+      icon: Flame,
+      text: "Spicy",
+    },
+  } as const;
+  const badge = styles[label];
+  const Icon = badge.icon;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ${badge.className}`}
+    >
+      <Icon className="h-3 w-3" />
+      {badge.text}
+    </span>
   );
 }
 

@@ -162,3 +162,10 @@
 - [x] Compare OddMenu and QRServe public experiences and identify QRServe’s strongest differentiators and improvement opportunities.
 - [x] Add a premium, service-led FAQ section to the QRServe main page with accessible expand/collapse behavior.
 - [x] Verify the new FAQ section on desktop and phone layouts, plus focused regression checks.
+- [x] Defer the WhatsApp enquiry route until QRServe has a dedicated business number; do not use a personal number without approval.
+- [x] Add a polished QRServe email-enquiry CTA using the approved public email address.
+- [x] Add a premium venue-information preview and professional dietary badges to the shareable QRServe guest demo.
+- [x] Verify conversion, venue-information, and dietary-badge refinements on desktop and phone layouts with regression coverage.
+- [x] Audit QRServe’s current Google indexing, crawlability, search-result footprint, and local-search content opportunities.
+- [x] Improve technical SEO and local-service content for legitimate Google discovery, then document realistic post-deployment indexing steps.
+- [x] Remove the unfinished WhatsApp helper and validation test so no unconfigured contact route remains.
