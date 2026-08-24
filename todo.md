@@ -138,6 +138,6 @@
 - [x] Add an administrator-only activity monitoring section for venue-owner accounts, restaurants, and menu changes.
 - [x] Add access-control and activity-recording tests, then verify monitoring is visible only to the administrator.
 - [x] Browser-verify an approved venue owner can register, receive a session, reach the private workspace, and manage only their own restaurant.
-- [ ] Show venues created by approved venue owners in the administrator Client venues dashboard with safe owner attribution.
-- [ ] Preserve standard owner isolation while adding administrator-wide venue-list access and regression coverage.
-- [ ] Verify the updated Client venues dashboard locally and in production for administrator and standard owner roles.
+- [x] Show venues created by approved venue owners in the administrator Client venues dashboard with safe owner attribution.
+- [x] Preserve standard owner isolation while adding administrator-wide venue-list access and regression coverage.
+- [x] Verify the updated Client venues dashboard locally and in production for administrator and standard owner roles.
