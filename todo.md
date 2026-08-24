@@ -169,3 +169,4 @@
 - [x] Audit QRServe’s current Google indexing, crawlability, search-result footprint, and local-search content opportunities.
 - [x] Improve technical SEO and local-service content for legitimate Google discovery, then document realistic post-deployment indexing steps.
 - [x] Remove the unfinished WhatsApp helper and validation test so no unconfigured contact route remains.
+- [ ] Ensure Vercel serves QRServe’s robots.txt and sitemap.xml before the single-page-app fallback, then verify both on production.

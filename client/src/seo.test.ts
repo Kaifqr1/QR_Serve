@@ -23,4 +23,11 @@ describe("QRServe public search readiness", () => {
     expect(sitemap).toContain("<urlset");
     expect(sitemap).toContain("https://qrserve-menu.vercel.app/demo");
   });
+
+  it("uses a filesystem-first production route before the single-page app fallback", async () => {
+    const config = await readFile(new URL("../../vercel.json", import.meta.url), "utf8");
+
+    expect(config).toContain('"handle": "filesystem"');
+    expect(config).toContain('"src": "/(.*)", "dest": "/index.html"');
+  });
 });

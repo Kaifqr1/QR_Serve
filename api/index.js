@@ -54,7 +54,7 @@ function registerStorageProxy(app) {
 }
 
 // server/routers.ts
-import { and as and2, asc, count, eq as eq2, sql } from "drizzle-orm";
+import { and as and2, asc, count, desc, eq as eq2, sql } from "drizzle-orm";
 import { TRPCError as TRPCError3 } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { z as z3 } from "zod";
@@ -117,6 +117,14 @@ var analyticsEvents = mysqlTable("analyticsEvents", {
   userAgent: varchar("userAgent", { length: 500 }),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 }, (table) => [index("analytics_restaurant_idx").on(table.restaurantId), index("analytics_created_idx").on(table.createdAt)]);
+var ownerActivityEvents = mysqlTable("owner_activity_events", {
+  id: int("id").autoincrement().primaryKey(),
+  ownerId: int("ownerId").notNull(),
+  restaurantId: int("restaurantId"),
+  eventType: varchar("eventType", { length: 64 }).notNull(),
+  summary: varchar("summary", { length: 280 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull()
+}, (table) => [index("owner_activity_owner_idx").on(table.ownerId), index("owner_activity_restaurant_idx").on(table.restaurantId), index("owner_activity_created_idx").on(table.createdAt)]);
 
 // shared/qrserve.ts
 import { z } from "zod";
@@ -585,10 +593,17 @@ import { compare, hash } from "bcryptjs";
 import { parse as parseCookieHeader } from "cookie";
 import { SignJWT, jwtVerify } from "jose";
 var LOCAL_SESSION_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1e3;
+var VENUE_OWNER_EMAIL_DOMAINS = [
+  "rastaurant.com",
+  "cafe.com"
+];
+var PASSWORD_WORK_FACTOR = 12;
 var DEVELOPMENT_SESSION_SECRET = "qrserve-development-session-secret-not-for-production";
 function sessionKey() {
-  if (ENV.cookieSecret.length >= 32) return new TextEncoder().encode(ENV.cookieSecret);
-  if (ENV.isProduction) throw new Error("JWT_SECRET must be at least 32 characters in production.");
+  if (ENV.cookieSecret.length >= 32)
+    return new TextEncoder().encode(ENV.cookieSecret);
+  if (ENV.isProduction)
+    throw new Error("JWT_SECRET must be at least 32 characters in production.");
   return new TextEncoder().encode(DEVELOPMENT_SESSION_SECRET);
 }
 function getHeader(req, name) {
@@ -598,19 +613,36 @@ function getHeader(req, name) {
 function normaliseEmail(email) {
   return email.trim().toLowerCase();
 }
+function isAllowedVenueOwnerEmail(email) {
+  const normalised = normaliseEmail(email);
+  return VENUE_OWNER_EMAIL_DOMAINS.some(
+    (domain) => normalised.endsWith(`@${domain}`)
+  );
+}
+async function hashPassword(password) {
+  return hash(password, PASSWORD_WORK_FACTOR);
+}
 async function verifyPassword(password, passwordHash) {
   return compare(password, passwordHash);
 }
 async function createCredentialSession(userId) {
-  return new SignJWT({ uid: userId, kind: "qrserve-password" }).setProtectedHeader({ alg: "HS256", typ: "JWT" }).setIssuedAt().setExpirationTime(Math.floor((Date.now() + LOCAL_SESSION_MAX_AGE_MS) / 1e3)).sign(sessionKey());
+  return new SignJWT({
+    uid: userId,
+    kind: "qrserve-password"
+  }).setProtectedHeader({ alg: "HS256", typ: "JWT" }).setIssuedAt().setExpirationTime(
+    Math.floor((Date.now() + LOCAL_SESSION_MAX_AGE_MS) / 1e3)
+  ).sign(sessionKey());
 }
 async function getCredentialSessionUser(req) {
   const rawCookie = getHeader(req, "cookie");
   const token = rawCookie ? parseCookieHeader(rawCookie)[COOKIE_NAME] : void 0;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, sessionKey(), { algorithms: ["HS256"] });
-    if (payload.kind !== "qrserve-password" || typeof payload.uid !== "number" || !Number.isInteger(payload.uid)) return null;
+    const { payload } = await jwtVerify(token, sessionKey(), {
+      algorithms: ["HS256"]
+    });
+    if (payload.kind !== "qrserve-password" || typeof payload.uid !== "number" || !Number.isInteger(payload.uid))
+      return null;
     return await getUserById(payload.uid) ?? null;
   } catch {
     return null;
@@ -621,7 +653,9 @@ async function getLegacySessionOpenId(req) {
   const token = rawCookie ? parseCookieHeader(rawCookie)[COOKIE_NAME] : void 0;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, sessionKey(), { algorithms: ["HS256"] });
+    const { payload } = await jwtVerify(token, sessionKey(), {
+      algorithms: ["HS256"]
+    });
     const legacy = payload;
     return typeof legacy.openId === "string" && legacy.openId.length > 0 && typeof legacy.appId === "string" && legacy.appId.length > 0 ? legacy.openId : null;
   } catch {
@@ -635,16 +669,71 @@ function publicUser(user) {
 
 // server/routers.ts
 var idInput = z3.object({ id: z3.number().int().positive() });
-var restaurantIdInput = z3.object({ restaurantId: z3.number().int().positive() });
-var credentialsInput = z3.object({ email: z3.string().trim().email().max(320), password: z3.string().min(12).max(128) });
+var restaurantIdInput = z3.object({
+  restaurantId: z3.number().int().positive()
+});
+var credentialsInput = z3.object({
+  email: z3.string().trim().email().max(320),
+  password: z3.string().min(12).max(128)
+});
+var venueOwnerRegistrationInput = credentialsInput.extend({
+  name: z3.string().trim().min(2).max(80)
+});
+var activityListInput = z3.object({ limit: z3.number().int().min(1).max(100).default(100) }).optional();
 async function database2() {
   const db = await getDb();
-  if (!db) throw new TRPCError3({ code: "PRECONDITION_FAILED", message: "QRServe data storage is not available yet. Please try again shortly." });
+  if (!db)
+    throw new TRPCError3({
+      code: "PRECONDITION_FAILED",
+      message: "QRServe data storage is not available yet. Please try again shortly."
+    });
   return db;
+}
+var ownerActivityStorageReady = null;
+function ensureOwnerActivityStorage(db) {
+  if (!ownerActivityStorageReady) {
+    ownerActivityStorageReady = db.execute(sql.raw(`
+        CREATE TABLE IF NOT EXISTS owner_activity_events (
+          id int AUTO_INCREMENT NOT NULL,
+          ownerId int NOT NULL,
+          restaurantId int,
+          eventType varchar(64) NOT NULL,
+          summary varchar(280) NOT NULL,
+          createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          KEY owner_activity_owner_idx (ownerId),
+          KEY owner_activity_restaurant_idx (restaurantId),
+          KEY owner_activity_created_idx (createdAt)
+        ) ENGINE=InnoDB
+      `)).then(() => void 0).catch((error) => {
+      ownerActivityStorageReady = null;
+      throw error;
+    });
+  }
+  return ownerActivityStorageReady;
+}
+async function recordOwnerActivity(db, event) {
+  try {
+    await ensureOwnerActivityStorage(db);
+    await db.insert(ownerActivityEvents).values({
+      ownerId: event.ownerId,
+      restaurantId: event.restaurantId ?? null,
+      eventType: event.eventType,
+      summary: event.summary.slice(0, 280)
+    });
+  } catch {
+    console.error("QRServe owner activity audit write failed", {
+      ownerId: event.ownerId,
+      eventType: event.eventType
+    });
+  }
 }
 function safeImageStorageFailure(error) {
   const record = typeof error === "object" && error !== null ? error : {};
-  const message = typeof record.message === "string" ? record.message.replace(/cloudinary:\/\/[^@\s]+@/gi, "cloudinary://[redacted]@").replace(/(api[_-]?secret|api[_-]?key|token)=([^\s&]+)/gi, "$1=[redacted]").slice(0, 400) : "Unknown storage error";
+  const message = typeof record.message === "string" ? record.message.replace(/cloudinary:\/\/[^@\s]+@/gi, "cloudinary://[redacted]@").replace(
+    /(api[_-]?secret|api[_-]?key|token)=([^\s&]+)/gi,
+    "$1=[redacted]"
+  ).slice(0, 400) : "Unknown storage error";
   return {
     name: typeof record.name === "string" ? record.name.slice(0, 80) : "StorageError",
     httpCode: typeof record.http_code === "number" ? record.http_code : void 0,
@@ -653,12 +742,19 @@ function safeImageStorageFailure(error) {
 }
 async function owned(ownerId, restaurantId) {
   const restaurant = await getOwnedRestaurant(ownerId, restaurantId);
-  if (!restaurant) throw new TRPCError3({ code: "NOT_FOUND", message: "Restaurant not found or access is not permitted." });
+  if (!restaurant)
+    throw new TRPCError3({
+      code: "NOT_FOUND",
+      message: "Restaurant not found or access is not permitted."
+    });
   return restaurant;
 }
 function slugify(name) {
   const root = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 90);
   return `${root || "restaurant"}-${nanoid(6).toLowerCase()}`;
+}
+function isDuplicateKeyError(error) {
+  return typeof error === "object" && error !== null && "code" in error && (error.code === "ER_DUP_ENTRY" || error.code === 1062);
 }
 function classifyDatabaseConnectionError(error) {
   const seen = /* @__PURE__ */ new Set();
@@ -668,38 +764,112 @@ function classifyDatabaseConnectionError(error) {
     seen.add(current);
     const record = current;
     if (record.code) details.push(String(record.code).toLowerCase());
-    if (typeof record.message === "string") details.push(record.message.toLowerCase());
+    if (typeof record.message === "string")
+      details.push(record.message.toLowerCase());
     current = record.cause;
   }
   const detail = details.join(" ");
-  if (/unknown (column|table)|doesn't exist|no database selected/.test(detail)) return "schema";
-  if (/access denied|authentication|er_access_denied|password/.test(detail)) return "credentials";
+  if (/unknown (column|table)|doesn't exist|no database selected/.test(detail))
+    return "schema";
+  if (/access denied|authentication|er_access_denied|password/.test(detail))
+    return "credentials";
   if (/ssl|tls|certificate|handshake/.test(detail)) return "tls";
   if (/invalid.*url|malformed|uri/.test(detail)) return "format";
-  if (/enotfound|econnrefused|etimedout|getaddrinfo|network/.test(detail)) return "network";
+  if (/enotfound|econnrefused|etimedout|getaddrinfo|network/.test(detail))
+    return "network";
   return "connection";
 }
 var appRouter = router({
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query((opts) => opts.ctx.user ? publicUser(opts.ctx.user) : null),
+    me: publicProcedure.query(
+      (opts) => opts.ctx.user ? publicUser(opts.ctx.user) : null
+    ),
     storageStatus: publicProcedure.query(async () => {
       const db = await getDb();
       if (!db) return { status: "missing" };
       try {
-        const [rows] = await db.execute(sql`SELECT DATABASE() AS databaseName`);
-        return { status: "connected", databaseName: rows[0]?.databaseName ?? null };
+        const [rows] = await db.execute(
+          sql`SELECT DATABASE() AS databaseName`
+        );
+        return {
+          status: "connected",
+          databaseName: rows[0]?.databaseName ?? null
+        };
       } catch (error) {
-        return { status: "error", reason: classifyDatabaseConnectionError(error) };
+        return {
+          status: "error",
+          reason: classifyDatabaseConnectionError(error)
+        };
       }
     }),
     signIn: publicProcedure.input(credentialsInput).mutation(async ({ ctx, input }) => {
       const db = await database2();
       const user = await db.select().from(users).where(eq2(users.email, normaliseEmail(input.email))).limit(1);
-      if (!user[0]?.passwordHash || !await verifyPassword(input.password, user[0].passwordHash)) throw new TRPCError3({ code: "UNAUTHORIZED", message: "Incorrect email or password." });
+      if (!user[0]?.passwordHash || !await verifyPassword(input.password, user[0].passwordHash))
+        throw new TRPCError3({
+          code: "UNAUTHORIZED",
+          message: "Incorrect email or password."
+        });
       await db.update(users).set({ lastSignedIn: /* @__PURE__ */ new Date() }).where(eq2(users.id, user[0].id));
       const token = await createCredentialSession(user[0].id);
-      ctx.res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(ctx.req), maxAge: LOCAL_SESSION_MAX_AGE_MS });
+      ctx.res.cookie(COOKIE_NAME, token, {
+        ...getSessionCookieOptions(ctx.req),
+        maxAge: LOCAL_SESSION_MAX_AGE_MS
+      });
+      return publicUser(user[0]);
+    }),
+    register: publicProcedure.input(venueOwnerRegistrationInput).mutation(async ({ ctx, input }) => {
+      const email = normaliseEmail(input.email);
+      if (!isAllowedVenueOwnerEmail(email)) {
+        throw new TRPCError3({
+          code: "FORBIDDEN",
+          message: "Venue-owner accounts are available only to @rastaurant.com and @cafe.com email addresses."
+        });
+      }
+      const db = await database2();
+      const existing = await db.select({ id: users.id }).from(users).where(eq2(users.email, email)).limit(1);
+      if (existing[0])
+        throw new TRPCError3({
+          code: "CONFLICT",
+          message: "An account already exists for this email address. Please sign in instead."
+        });
+      const openId = `venue-${nanoid(18)}`;
+      let insertId;
+      try {
+        const created = await db.insert(users).values({
+          openId,
+          name: input.name,
+          email,
+          passwordHash: await hashPassword(input.password),
+          loginMethod: "password",
+          role: "user"
+        });
+        insertId = Number(created[0].insertId);
+      } catch (error) {
+        if (isDuplicateKeyError(error))
+          throw new TRPCError3({
+            code: "CONFLICT",
+            message: "An account already exists for this email address. Please sign in instead."
+          });
+        throw error;
+      }
+      const user = await db.select().from(users).where(eq2(users.id, insertId)).limit(1);
+      if (!user[0])
+        throw new TRPCError3({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "We could not create that account. Please try again."
+        });
+      const token = await createCredentialSession(user[0].id);
+      ctx.res.cookie(COOKIE_NAME, token, {
+        ...getSessionCookieOptions(ctx.req),
+        maxAge: LOCAL_SESSION_MAX_AGE_MS
+      });
+      await recordOwnerActivity(db, {
+        ownerId: user[0].id,
+        eventType: "VENUE_OWNER_REGISTERED",
+        summary: "Venue owner account registered."
+      });
       return publicUser(user[0]);
     }),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -709,26 +879,101 @@ var appRouter = router({
     })
   }),
   restaurant: router({
-    list: protectedProcedure.query(async ({ ctx }) => (await database2()).select().from(restaurants).where(eq2(restaurants.ownerId, ctx.user.id)).orderBy(asc(restaurants.createdAt))),
+    list: protectedProcedure.query(
+      async ({ ctx }) => (await database2()).select().from(restaurants).where(eq2(restaurants.ownerId, ctx.user.id)).orderBy(asc(restaurants.createdAt))
+    ),
+    adminList: adminProcedure.query(
+      async () => (await database2()).select({
+        id: restaurants.id,
+        ownerId: restaurants.ownerId,
+        name: restaurants.name,
+        slug: restaurants.slug,
+        location: restaurants.location,
+        description: restaurants.description,
+        timezone: restaurants.timezone,
+        logoUrl: restaurants.logoUrl,
+        plan: restaurants.plan,
+        createdAt: restaurants.createdAt,
+        updatedAt: restaurants.updatedAt,
+        ownerName: users.name,
+        ownerEmail: users.email
+      }).from(restaurants).leftJoin(users, eq2(restaurants.ownerId, users.id)).orderBy(asc(restaurants.createdAt))
+    ),
+    adminDelete: adminProcedure.input(idInput).mutation(async ({ input }) => {
+      const db = await database2();
+      const current = await db.select().from(restaurants).where(eq2(restaurants.id, input.id)).limit(1);
+      if (!current[0])
+        throw new TRPCError3({
+          code: "NOT_FOUND",
+          message: "Client venue not found."
+        });
+      await db.delete(restaurants).where(eq2(restaurants.id, input.id));
+      await recordOwnerActivity(db, {
+        ownerId: current[0].ownerId,
+        restaurantId: input.id,
+        eventType: "ADMINISTRATOR_REMOVED_VENUE",
+        summary: `Administrator removed venue \u201C${current[0].name}\u201D.`
+      });
+      return { success: true };
+    }),
     get: protectedProcedure.input(idInput).query(async ({ ctx, input }) => owned(ctx.user.id, input.id)),
     create: protectedProcedure.input(restaurantInput).mutation(async ({ ctx, input }) => {
       const db = await database2();
       const existing = await db.select({ id: restaurants.id }).from(restaurants).where(eq2(restaurants.ownerId, ctx.user.id));
-      if (existing.length >= planLimits.FREE) throw new TRPCError3({ code: "FORBIDDEN", message: "The Free plan includes one restaurant. Upgrade your plan to add another." });
-      const result = await db.insert(restaurants).values({ ownerId: ctx.user.id, name: input.name, slug: slugify(input.name), location: input.location, description: input.description || null, timezone: input.timezone, logoUrl: input.logoUrl || null, plan: "FREE" });
+      if (existing.length >= planLimits.FREE)
+        throw new TRPCError3({
+          code: "FORBIDDEN",
+          message: "The Free plan includes one restaurant. Upgrade your plan to add another."
+        });
+      const result = await db.insert(restaurants).values({
+        ownerId: ctx.user.id,
+        name: input.name,
+        slug: slugify(input.name),
+        location: input.location,
+        description: input.description || null,
+        timezone: input.timezone,
+        logoUrl: input.logoUrl || null,
+        plan: "FREE"
+      });
       const row = await db.select().from(restaurants).where(eq2(restaurants.id, Number(result[0].insertId))).limit(1);
+      if (row[0]) {
+        await recordOwnerActivity(db, {
+          ownerId: ctx.user.id,
+          restaurantId: row[0].id,
+          eventType: "RESTAURANT_CREATED",
+          summary: `Created venue \u201C${row[0].name}\u201D.`
+        });
+      }
       return row[0];
     }),
     update: protectedProcedure.input(restaurantUpdateInput).mutation(async ({ ctx, input }) => {
       const db = await database2();
-      await owned(ctx.user.id, input.id);
-      await db.update(restaurants).set({ name: input.name, location: input.location, description: input.description || null, timezone: input.timezone, logoUrl: input.logoUrl || null }).where(eq2(restaurants.id, input.id));
+      const restaurant = await owned(ctx.user.id, input.id);
+      await db.update(restaurants).set({
+        name: input.name,
+        location: input.location,
+        description: input.description || null,
+        timezone: input.timezone,
+        logoUrl: input.logoUrl || null
+      }).where(eq2(restaurants.id, input.id));
+      await recordOwnerActivity(db, {
+        ownerId: ctx.user.id,
+        restaurantId: input.id,
+        eventType: "RESTAURANT_UPDATED",
+        summary: `Updated venue \u201C${input.name || restaurant.name}\u201D.`
+      });
       return { success: true };
     }),
     delete: protectedProcedure.input(idInput).mutation(async ({ ctx, input }) => {
       const db = await database2();
-      await owned(ctx.user.id, input.id);
+      const restaurant = await owned(ctx.user.id, input.id);
       await db.delete(restaurants).where(eq2(restaurants.id, input.id));
+      await recordOwnerActivity(db, {
+        ownerId: ctx.user.id,
+        restaurantId: input.id,
+        eventType: "RESTAURANT_DELETED",
+        summary: `Deleted venue \u201C${restaurant.name}\u201D.`
+      });
       return { success: true };
     })
   }),
@@ -741,24 +986,57 @@ var appRouter = router({
       const db = await database2();
       await owned(ctx.user.id, input.restaurantId);
       const existing = await db.select({ id: menuCategories.id }).from(menuCategories).where(eq2(menuCategories.restaurantId, input.restaurantId));
-      const result = await db.insert(menuCategories).values({ restaurantId: input.restaurantId, name: input.name, description: input.description || null, sortOrder: existing.length });
+      const result = await db.insert(menuCategories).values({
+        restaurantId: input.restaurantId,
+        name: input.name,
+        description: input.description || null,
+        sortOrder: existing.length
+      });
       const row = await db.select().from(menuCategories).where(eq2(menuCategories.id, Number(result[0].insertId))).limit(1);
+      if (row[0]) {
+        await recordOwnerActivity(db, {
+          ownerId: ctx.user.id,
+          restaurantId: input.restaurantId,
+          eventType: "CATEGORY_CREATED",
+          summary: `Created category \u201C${row[0].name}\u201D.`
+        });
+      }
       return row[0];
     }),
     update: protectedProcedure.input(categoryUpdateInput).mutation(async ({ ctx, input }) => {
       const db = await database2();
       const current = await db.select().from(menuCategories).where(eq2(menuCategories.id, input.id)).limit(1);
-      if (!current[0]) throw new TRPCError3({ code: "NOT_FOUND", message: "Category not found." });
+      if (!current[0])
+        throw new TRPCError3({
+          code: "NOT_FOUND",
+          message: "Category not found."
+        });
       await owned(ctx.user.id, current[0].restaurantId);
       await db.update(menuCategories).set({ name: input.name, description: input.description || null }).where(eq2(menuCategories.id, input.id));
+      await recordOwnerActivity(db, {
+        ownerId: ctx.user.id,
+        restaurantId: current[0].restaurantId,
+        eventType: "CATEGORY_UPDATED",
+        summary: `Updated category \u201C${input.name}\u201D.`
+      });
       return { success: true };
     }),
     delete: protectedProcedure.input(idInput).mutation(async ({ ctx, input }) => {
       const db = await database2();
       const current = await db.select().from(menuCategories).where(eq2(menuCategories.id, input.id)).limit(1);
-      if (!current[0]) throw new TRPCError3({ code: "NOT_FOUND", message: "Category not found." });
+      if (!current[0])
+        throw new TRPCError3({
+          code: "NOT_FOUND",
+          message: "Category not found."
+        });
       await owned(ctx.user.id, current[0].restaurantId);
       await db.delete(menuCategories).where(eq2(menuCategories.id, input.id));
+      await recordOwnerActivity(db, {
+        ownerId: ctx.user.id,
+        restaurantId: current[0].restaurantId,
+        eventType: "CATEGORY_DELETED",
+        summary: `Deleted category \u201C${current[0].name}\u201D.`
+      });
       return { success: true };
     })
   }),
@@ -771,60 +1049,185 @@ var appRouter = router({
     create: protectedProcedure.input(menuItemInput).mutation(async ({ ctx, input }) => {
       const db = await database2();
       await owned(ctx.user.id, input.restaurantId);
-      const category = await db.select().from(menuCategories).where(and2(eq2(menuCategories.id, input.categoryId), eq2(menuCategories.restaurantId, input.restaurantId))).limit(1);
-      if (!category[0]) throw new TRPCError3({ code: "BAD_REQUEST", message: "Choose a category belonging to this restaurant." });
+      const category = await db.select().from(menuCategories).where(
+        and2(
+          eq2(menuCategories.id, input.categoryId),
+          eq2(menuCategories.restaurantId, input.restaurantId)
+        )
+      ).limit(1);
+      if (!category[0])
+        throw new TRPCError3({
+          code: "BAD_REQUEST",
+          message: "Choose a category belonging to this restaurant."
+        });
       const order = await db.select({ id: menuItems.id }).from(menuItems).where(eq2(menuItems.categoryId, input.categoryId));
-      const result = await db.insert(menuItems).values({ restaurantId: input.restaurantId, categoryId: input.categoryId, name: input.name, description: input.description || null, price: input.price.toFixed(2), imageUrl: input.imageUrl || null, isAvailable: input.isAvailable, sortOrder: order.length });
+      const result = await db.insert(menuItems).values({
+        restaurantId: input.restaurantId,
+        categoryId: input.categoryId,
+        name: input.name,
+        description: input.description || null,
+        price: input.price.toFixed(2),
+        imageUrl: input.imageUrl || null,
+        isAvailable: input.isAvailable,
+        sortOrder: order.length
+      });
       const row = await db.select().from(menuItems).where(eq2(menuItems.id, Number(result[0].insertId))).limit(1);
+      if (row[0]) {
+        await recordOwnerActivity(db, {
+          ownerId: ctx.user.id,
+          restaurantId: input.restaurantId,
+          eventType: "MENU_ITEM_CREATED",
+          summary: `Created menu item \u201C${row[0].name}\u201D.`
+        });
+      }
       return row[0] ? { ...row[0], price: Number(row[0].price) } : null;
     }),
     update: protectedProcedure.input(menuItemUpdateInput).mutation(async ({ ctx, input }) => {
       const db = await database2();
       const current = await db.select().from(menuItems).where(eq2(menuItems.id, input.id)).limit(1);
-      if (!current[0]) throw new TRPCError3({ code: "NOT_FOUND", message: "Menu item not found." });
+      if (!current[0])
+        throw new TRPCError3({
+          code: "NOT_FOUND",
+          message: "Menu item not found."
+        });
       await owned(ctx.user.id, current[0].restaurantId);
       if (input.categoryId !== void 0) {
-        const category = await db.select().from(menuCategories).where(and2(eq2(menuCategories.id, input.categoryId), eq2(menuCategories.restaurantId, current[0].restaurantId))).limit(1);
-        if (!category[0]) throw new TRPCError3({ code: "BAD_REQUEST", message: "Choose a category belonging to this restaurant." });
+        const category = await db.select().from(menuCategories).where(
+          and2(
+            eq2(menuCategories.id, input.categoryId),
+            eq2(menuCategories.restaurantId, current[0].restaurantId)
+          )
+        ).limit(1);
+        if (!category[0])
+          throw new TRPCError3({
+            code: "BAD_REQUEST",
+            message: "Choose a category belonging to this restaurant."
+          });
       }
-      await db.update(menuItems).set({ ...input.categoryId !== void 0 ? { categoryId: input.categoryId } : {}, ...input.name !== void 0 ? { name: input.name } : {}, ...input.description !== void 0 ? { description: input.description || null } : {}, ...input.price !== void 0 ? { price: input.price.toFixed(2) } : {}, ...input.imageUrl !== void 0 ? { imageUrl: input.imageUrl || null } : {}, ...input.isAvailable !== void 0 ? { isAvailable: input.isAvailable } : {}, version: current[0].version + 1 }).where(eq2(menuItems.id, input.id));
+      await db.update(menuItems).set({
+        ...input.categoryId !== void 0 ? { categoryId: input.categoryId } : {},
+        ...input.name !== void 0 ? { name: input.name } : {},
+        ...input.description !== void 0 ? { description: input.description || null } : {},
+        ...input.price !== void 0 ? { price: input.price.toFixed(2) } : {},
+        ...input.imageUrl !== void 0 ? { imageUrl: input.imageUrl || null } : {},
+        ...input.isAvailable !== void 0 ? { isAvailable: input.isAvailable } : {},
+        version: current[0].version + 1
+      }).where(eq2(menuItems.id, input.id));
+      await recordOwnerActivity(db, {
+        ownerId: ctx.user.id,
+        restaurantId: current[0].restaurantId,
+        eventType: "MENU_ITEM_UPDATED",
+        summary: `Updated menu item \u201C${input.name ?? current[0].name}\u201D.`
+      });
       return { success: true };
     }),
     delete: protectedProcedure.input(idInput).mutation(async ({ ctx, input }) => {
       const db = await database2();
       const current = await db.select().from(menuItems).where(eq2(menuItems.id, input.id)).limit(1);
-      if (!current[0]) throw new TRPCError3({ code: "NOT_FOUND", message: "Menu item not found." });
+      if (!current[0])
+        throw new TRPCError3({
+          code: "NOT_FOUND",
+          message: "Menu item not found."
+        });
       await owned(ctx.user.id, current[0].restaurantId);
       await db.delete(menuItems).where(eq2(menuItems.id, input.id));
+      await recordOwnerActivity(db, {
+        ownerId: ctx.user.id,
+        restaurantId: current[0].restaurantId,
+        eventType: "MENU_ITEM_DELETED",
+        summary: `Deleted menu item \u201C${current[0].name}\u201D.`
+      });
       return { success: true };
     }),
     uploadImage: protectedProcedure.input(imageUploadInput).mutation(async ({ ctx, input }) => {
-      const match = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(input.dataUrl);
-      if (!match || match[1] !== input.contentType) throw new TRPCError3({ code: "BAD_REQUEST", message: "Please choose a valid JPG, PNG, or WebP image." });
+      const match = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(
+        input.dataUrl
+      );
+      if (!match || match[1] !== input.contentType)
+        throw new TRPCError3({
+          code: "BAD_REQUEST",
+          message: "Please choose a valid JPG, PNG, or WebP image."
+        });
       const bytes = Buffer.from(match[2], "base64");
-      if (bytes.byteLength > 5e6) throw new TRPCError3({ code: "PAYLOAD_TOO_LARGE", message: "Image files must be 5 MB or smaller." });
-      if (!isImageSignatureValid(bytes, input.contentType)) throw new TRPCError3({ code: "BAD_REQUEST", message: "The image content does not match its declared file type." });
+      if (bytes.byteLength > 5e6)
+        throw new TRPCError3({
+          code: "PAYLOAD_TOO_LARGE",
+          message: "Image files must be 5 MB or smaller."
+        });
+      if (!isImageSignatureValid(bytes, input.contentType))
+        throw new TRPCError3({
+          code: "BAD_REQUEST",
+          message: "The image content does not match its declared file type."
+        });
       const safeFilename = input.filename.replace(/\s+/g, "-").toLowerCase();
       try {
-        return await storagePut(`qrserve/${ctx.user.id}/menu-images/${safeFilename}`, bytes, input.contentType);
+        return await storagePut(
+          `qrserve/${ctx.user.id}/menu-images/${safeFilename}`,
+          bytes,
+          input.contentType
+        );
       } catch (error) {
         if (error instanceof StorageConfigurationError) {
-          throw new TRPCError3({ code: "PRECONDITION_FAILED", message: "Dish image uploads are not connected yet. Please finish the secure image-storage setup and try again." });
+          throw new TRPCError3({
+            code: "PRECONDITION_FAILED",
+            message: "Dish image uploads are not connected yet. Please finish the secure image-storage setup and try again."
+          });
         }
-        console.error("QRServe dish image upload failed", safeImageStorageFailure(error));
-        throw new TRPCError3({ code: "INTERNAL_SERVER_ERROR", message: "We could not upload that image. Please try again." });
+        console.error(
+          "QRServe dish image upload failed",
+          safeImageStorageFailure(error)
+        );
+        throw new TRPCError3({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "We could not upload that image. Please try again."
+        });
       }
+    })
+  }),
+  admin: router({
+    activity: router({
+      list: adminProcedure.input(activityListInput).query(async ({ input }) => {
+        const db = await database2();
+        await ensureOwnerActivityStorage(db);
+        return db.select({
+          id: ownerActivityEvents.id,
+          ownerId: ownerActivityEvents.ownerId,
+          ownerName: users.name,
+          ownerEmail: users.email,
+          restaurantId: ownerActivityEvents.restaurantId,
+          restaurantName: restaurants.name,
+          eventType: ownerActivityEvents.eventType,
+          summary: ownerActivityEvents.summary,
+          createdAt: ownerActivityEvents.createdAt
+        }).from(ownerActivityEvents).leftJoin(users, eq2(ownerActivityEvents.ownerId, users.id)).leftJoin(
+          restaurants,
+          eq2(ownerActivityEvents.restaurantId, restaurants.id)
+        ).orderBy(desc(ownerActivityEvents.createdAt), desc(ownerActivityEvents.id)).limit(input?.limit ?? 100);
+      })
     })
   }),
   public: router({
     menu: publicProcedure.input(z3.object({ slug: z3.string().trim().min(1).max(120) })).query(async ({ input, ctx }) => {
       const db = await database2();
       const restaurant = await db.select().from(restaurants).where(eq2(restaurants.slug, input.slug)).limit(1);
-      if (!restaurant[0]) throw new TRPCError3({ code: "NOT_FOUND", message: "This menu is no longer available." });
+      if (!restaurant[0])
+        throw new TRPCError3({
+          code: "NOT_FOUND",
+          message: "This menu is no longer available."
+        });
       const categories = await db.select().from(menuCategories).where(eq2(menuCategories.restaurantId, restaurant[0].id)).orderBy(asc(menuCategories.sortOrder));
-      const items = await db.select().from(menuItems).where(and2(eq2(menuItems.restaurantId, restaurant[0].id), eq2(menuItems.isAvailable, true))).orderBy(asc(menuItems.sortOrder));
+      const items = await db.select().from(menuItems).where(
+        and2(
+          eq2(menuItems.restaurantId, restaurant[0].id),
+          eq2(menuItems.isAvailable, true)
+        )
+      ).orderBy(asc(menuItems.sortOrder));
       const userAgent = Array.isArray(ctx.req.headers["user-agent"]) ? ctx.req.headers["user-agent"][0] : ctx.req.headers["user-agent"];
-      await db.insert(analyticsEvents).values({ restaurantId: restaurant[0].id, eventType: "MENU_VIEW", userAgent: userAgent?.slice(0, 500) ?? null });
+      await db.insert(analyticsEvents).values({
+        restaurantId: restaurant[0].id,
+        eventType: "MENU_VIEW",
+        userAgent: userAgent?.slice(0, 500) ?? null
+      });
       return {
         restaurant: {
           name: restaurant[0].name,
@@ -851,7 +1254,11 @@ var appRouter = router({
     trackScan: publicProcedure.input(z3.object({ slug: z3.string().trim().min(1).max(120) })).mutation(async ({ input }) => {
       const db = await database2();
       const restaurant = await db.select({ id: restaurants.id }).from(restaurants).where(eq2(restaurants.slug, input.slug)).limit(1);
-      if (!restaurant[0]) throw new TRPCError3({ code: "NOT_FOUND", message: "This menu is no longer available." });
+      if (!restaurant[0])
+        throw new TRPCError3({
+          code: "NOT_FOUND",
+          message: "This menu is no longer available."
+        });
       await db.insert(analyticsEvents).values({ restaurantId: restaurant[0].id, eventType: "QR_SCAN" });
       return { success: true };
     })
@@ -861,12 +1268,27 @@ var appRouter = router({
       const db = await database2();
       await owned(ctx.user.id, input.restaurantId);
       const [views, scans, items, categories] = await Promise.all([
-        db.select({ total: count() }).from(analyticsEvents).where(and2(eq2(analyticsEvents.restaurantId, input.restaurantId), eq2(analyticsEvents.eventType, "MENU_VIEW"))),
-        db.select({ total: count() }).from(analyticsEvents).where(and2(eq2(analyticsEvents.restaurantId, input.restaurantId), eq2(analyticsEvents.eventType, "QR_SCAN"))),
+        db.select({ total: count() }).from(analyticsEvents).where(
+          and2(
+            eq2(analyticsEvents.restaurantId, input.restaurantId),
+            eq2(analyticsEvents.eventType, "MENU_VIEW")
+          )
+        ),
+        db.select({ total: count() }).from(analyticsEvents).where(
+          and2(
+            eq2(analyticsEvents.restaurantId, input.restaurantId),
+            eq2(analyticsEvents.eventType, "QR_SCAN")
+          )
+        ),
         db.select({ total: count() }).from(menuItems).where(eq2(menuItems.restaurantId, input.restaurantId)),
         db.select({ total: count() }).from(menuCategories).where(eq2(menuCategories.restaurantId, input.restaurantId))
       ]);
-      return { views: Number(views[0]?.total ?? 0), scans: Number(scans[0]?.total ?? 0), items: Number(items[0]?.total ?? 0), categories: Number(categories[0]?.total ?? 0) };
+      return {
+        views: Number(views[0]?.total ?? 0),
+        scans: Number(scans[0]?.total ?? 0),
+        items: Number(items[0]?.total ?? 0),
+        categories: Number(categories[0]?.total ?? 0)
+      };
     })
   })
 });
